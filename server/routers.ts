@@ -172,6 +172,31 @@ export const appRouter = router({
         throw new Error("Invalid input");
       })
       .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        
+        const { messages, users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        // Get message to check if it has a file
+        const messageResult = await db.select().from(messages).where(eq(messages.id, input.messageId)).limit(1);
+        if (messageResult.length > 0) {
+          const message = messageResult[0];
+          
+          // If message has a file, update storage usage
+          if (message.fileSize && message.fileSize > 0 && message.senderId === ctx.user.id) {
+            const userResult = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+            if (userResult.length > 0) {
+              const currentUsage = userResult[0].storageUsed || 0;
+              const newUsage = Math.max(0, currentUsage - message.fileSize);
+              await db.update(users)
+                .set({ storageUsed: newUsage })
+                .where(eq(users.id, ctx.user.id));
+            }
+          }
+        }
+        
         const { deleteMessage } = await import("./db");
         const result = await deleteMessage(input.messageId, ctx.user.id);
         
@@ -209,6 +234,71 @@ export const appRouter = router({
         throw new Error("Invalid input");
       })
       .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        
+        const { users, systemSettings } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        // Get system settings
+        const settings = await db.select().from(systemSettings);
+        const settingsObj: Record<string, any> = {};
+        settings.forEach(setting => {
+          try {
+            settingsObj[setting.key] = JSON.parse(setting.value);
+          } catch {
+            settingsObj[setting.key] = setting.value;
+          }
+        });
+        
+        const maxFileSize = settingsObj.maxFileSize || 10485760; // 10MB default
+        const defaultStorageQuota = settingsObj.defaultStorageQuota || 1073741824; // 1GB default
+        const allowedFileTypes = settingsObj.allowedFileTypes || ['image/*', 'video/*', 'audio/*', 'application/pdf', 'application/zip'];
+        
+        // Check file size limit
+        if (input.fileSize > maxFileSize) {
+          throw new TRPCError({ 
+            code: "BAD_REQUEST", 
+            message: `File size exceeds maximum allowed size of ${Math.round(maxFileSize / 1048576)}MB` 
+          });
+        }
+        
+        // Check file type
+        const isAllowedType = allowedFileTypes.some((pattern: string) => {
+          if (pattern.endsWith('/*')) {
+            const prefix = pattern.slice(0, -2);
+            return input.fileType.startsWith(prefix);
+          }
+          return input.fileType === pattern;
+        });
+        
+        if (!isAllowedType) {
+          throw new TRPCError({ 
+            code: "BAD_REQUEST", 
+            message: "File type not allowed" 
+          });
+        }
+        
+        // Get user's current storage usage and quota
+        const userResult = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+        if (userResult.length === 0) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
+        
+        const user = userResult[0];
+        const userQuota = user.storageQuota || defaultStorageQuota;
+        const currentUsage = user.storageUsed || 0;
+        
+        // Check if user has enough quota
+        if (currentUsage + input.fileSize > userQuota) {
+          const availableSpace = userQuota - currentUsage;
+          throw new TRPCError({ 
+            code: "BAD_REQUEST", 
+            message: `Storage quota exceeded. Available: ${Math.round(availableSpace / 1048576)}MB, Required: ${Math.round(input.fileSize / 1048576)}MB` 
+          });
+        }
+        
         const { storagePut } = await import("./storage");
         
         // Decode base64 file data
@@ -221,6 +311,11 @@ export const appRouter = router({
         
         // Upload to S3
         const { url } = await storagePut(fileKey, fileBuffer, input.fileType);
+        
+        // Update user's storage usage
+        await db.update(users)
+          .set({ storageUsed: currentUsage + input.fileSize })
+          .where(eq(users.id, ctx.user.id));
         
         // Generate thumbnail for images
         let thumbnailUrl = null;
@@ -507,6 +602,118 @@ export const appRouter = router({
           .offset(input.offset);
         
         return { logs, total };
+      }),
+    
+    // File Management & Storage Quotas
+    getSystemSettings: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      
+      const { systemSettings } = await import("../drizzle/schema");
+      const settings = await db.select().from(systemSettings);
+      
+      // Convert to key-value object
+      const settingsObj: Record<string, any> = {};
+      settings.forEach(setting => {
+        try {
+          settingsObj[setting.key] = JSON.parse(setting.value);
+        } catch {
+          settingsObj[setting.key] = setting.value;
+        }
+      });
+      
+      // Return defaults if not set
+      return {
+        maxFileSize: settingsObj.maxFileSize || 10485760, // 10MB default
+        defaultStorageQuota: settingsObj.defaultStorageQuota || 1073741824, // 1GB default
+        allowedFileTypes: settingsObj.allowedFileTypes || ['image/*', 'video/*', 'audio/*', 'application/pdf', 'application/zip'],
+      };
+    }),
+    
+    updateSystemSettings: protectedProcedure
+      .input(z.object({
+        maxFileSize: z.number().optional(),
+        defaultStorageQuota: z.number().optional(),
+        allowedFileTypes: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+        }
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { systemSettings } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        // Update each setting
+        for (const [key, value] of Object.entries(input)) {
+          if (value !== undefined) {
+            const existing = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+            
+            if (existing.length > 0) {
+              await db.update(systemSettings)
+                .set({ value: JSON.stringify(value), updatedAt: new Date() })
+                .where(eq(systemSettings.key, key));
+            } else {
+              await db.insert(systemSettings).values({
+                key,
+                value: JSON.stringify(value),
+                description: `System setting for ${key}`,
+              });
+            }
+          }
+        }
+        
+        return { success: true };
+      }),
+    
+    getUserStorageStats: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      
+      const { users } = await import("../drizzle/schema");
+      const usersWithStorage = await db.select({
+        id: users.id,
+        username: users.username,
+        name: users.name,
+        storageUsed: users.storageUsed,
+        storageQuota: users.storageQuota,
+      }).from(users);
+      
+      return usersWithStorage;
+    }),
+    
+    updateUserQuota: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        storageQuota: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+        }
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        await db.update(users)
+          .set({ storageQuota: input.storageQuota })
+          .where(eq(users.id, input.userId));
+        
+        return { success: true };
       }),
   }),
 

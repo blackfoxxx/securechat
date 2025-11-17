@@ -33,6 +33,10 @@ export const users = mysqlTable("users", {
   encryptedPrivateKey: text("encryptedPrivateKey"),
   /** Salt for key derivation (base64 encoded) */
   keySalt: text("keySalt"),
+  /** Storage quota in bytes (null = use default from system settings) */
+  storageQuota: int("storageQuota"),
+  /** Current storage used in bytes */
+  storageUsed: int("storageUsed").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -178,3 +182,19 @@ export type CallHistory = typeof callHistory.$inferSelect;
 export type InsertCallHistory = typeof callHistory.$inferInsert;
 export type CallParticipant = typeof callParticipants.$inferSelect;
 export type InsertCallParticipant = typeof callParticipants.$inferInsert;
+
+// System settings for global configuration
+export const systemSettings = mysqlTable("system_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Setting key (unique identifier) */
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  /** Setting value (stored as JSON string for flexibility) */
+  value: text("value").notNull(),
+  /** Setting description */
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertSystemSetting = typeof systemSettings.$inferInsert;

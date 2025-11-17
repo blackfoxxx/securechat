@@ -407,3 +407,24 @@
 - [ ] Update DEPLOYMENT.md with group calls info
 - [ ] Create quick start guide for M2M deployment
 - [ ] Test installation script on fresh system
+
+
+## File Management & Storage Quotas
+
+- [x] Add storage quota fields to users table
+- [x] Create system_settings table for global configuration
+- [x] Add file size tracking to messages table (already existed)
+- [x] Create API endpoint for global file settings
+- [x] Create API endpoint for user quota management
+- [x] Create API endpoint for storage statistics
+- [x] Build File Management tab in admin dashboard
+- [x] Add global settings UI (max file size, allowed types)
+- [x] Add user quota management UI with usage bars
+- [x] Add storage statistics dashboard
+- [x] Implement quota check before file upload
+- [x] Add file type validation
+- [x] Add quota exceeded error handling
+- [x] Track storage usage on upload
+- [x] Track storage usage on file deletion
+- [ ] Show quota usage to regular users (not just admin)
+- [ ] Add file management documentation

@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { SendNotificationDialog } from "@/components/SendNotificationDialog";
 import AuditTrailTab from "@/components/AuditTrailTab";
+import FileManagementTab from "@/components/FileManagementTab";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -295,6 +296,7 @@ export default function AdminDashboard() {
           <TabsList>
             <TabsTrigger value="users">Users Management</TabsTrigger>
             <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+            <TabsTrigger value="files">File Management</TabsTrigger>
           </TabsList>
           
           <TabsContent value="users" className="space-y-4">
@@ -443,6 +445,10 @@ export default function AdminDashboard() {
           
           <TabsContent value="audit" className="space-y-4">
             <AuditTrailTab filters={activityFilters} onFiltersChange={setActivityFilters} />
+          </TabsContent>
+          
+          <TabsContent value="files" className="space-y-4">
+            <FileManagementTab />
           </TabsContent>
         </Tabs>
       </div>
