@@ -8,6 +8,7 @@ import { SocketProvider } from "./contexts/SocketContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import Home from "./pages/Home";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminLogin from "./pages/AdminLogin";
 import ChatList from "./pages/ChatList";
 import ChatRoom from "./pages/ChatRoom";
 import VideoCall from "./pages/VideoCall";
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/setup-username" component={SetupUsername} />
       <Route path="/chats" component={ChatList} />
       <Route path="/profile" component={Profile} />
+      <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path={"/chat/:id"} component={ChatRoom} />
       <Route path={"/call/:id"} component={VideoCall} />

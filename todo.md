@@ -180,3 +180,12 @@
 - [ ] Archived chats - archive conversations to hide from main list
 - [ ] Starred messages - bookmark important messages
 - [ ] Chat wallpaper customization - set custom backgrounds for chats
+
+
+## Admin Authentication
+
+- [x] Add admin login page with username/password
+- [x] Create admin authentication middleware
+- [x] Protect /admin route with authentication
+- [x] Store admin credentials securely
+- [x] Add session management for admin users

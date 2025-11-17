@@ -38,9 +38,12 @@ export default function AdminDashboard() {
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: number; name: string } | null>(null);
 
-  // Redirect if not admin
-  if (!loading && user?.role !== "admin") {
-    setLocation("/");
+  // Check admin authentication
+  const isAdminAuthenticated = sessionStorage.getItem("adminAuthenticated") === "true";
+  
+  // Redirect to admin login if not authenticated
+  if (!loading && (!user || user.role !== "admin" || !isAdminAuthenticated)) {
+    setLocation("/admin/login");
     return null;
   }
 

@@ -224,6 +224,23 @@ export const appRouter = router({
   
   // Admin router
   admin: router({
+    login: publicProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null && "username" in val && "password" in val) {
+          return val as { username: string; password: string };
+        }
+        throw new Error("Invalid input");
+      })
+      .mutation(async ({ input }) => {
+        // Simple hardcoded admin credentials (in production, use database)
+        const ADMIN_USERNAME = "admin";
+        const ADMIN_PASSWORD = "admin123";
+        
+        if (input.username === ADMIN_USERNAME && input.password === ADMIN_PASSWORD) {
+          return { success: true };
+        }
+        return { success: false };
+      }),
     sendNotification: protectedProcedure
       .input((val: unknown) => {
         if (typeof val === "object" && val !== null && "userId" in val && "title" in val && "message" in val) {
