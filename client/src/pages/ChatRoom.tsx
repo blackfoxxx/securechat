@@ -351,56 +351,95 @@ export default function ChatRoom() {
                     toast.error("Not connected to server");
                     return;
                   }
-                  if (!otherUser) {
-                    toast.error("Recipient not found");
+                  if (!currentConversation) {
+                    toast.error("Conversation not found");
                     return;
                   }
 
                   const roomName = `chat-${conversationId}-${Date.now()}`;
+                  
+                  // Determine if this is a group call or 1-on-1
+                  const isGroupCall = currentConversation.conversation.type === 'group';
+                  let recipientIds: number[] = [];
+                  
+                  if (isGroupCall) {
+                    // For group calls, get all members except current user
+                    if ('members' in currentConversation && Array.isArray(currentConversation.members)) {
+                      recipientIds = currentConversation.members
+                        .filter((m: any) => m.id !== user?.id)
+                        .map((m: any) => m.id);
+                    }
+                  } else {
+                    // For 1-on-1 calls, just the other user
+                    if (!otherUser) {
+                      toast.error("Recipient not found");
+                      return;
+                    }
+                    recipientIds = [otherUser.id];
+                  }
+                  
+                  if (recipientIds.length === 0) {
+                    toast.error("No recipients found");
+                    return;
+                  }
                   
                   // Send call initiation request via Socket.IO
                   socket.emit("call:initiate", {
                     callerId: user?.id,
                     callerName: user?.name || user?.username || "User",
                     callerAvatar: user?.avatar,
-                    recipientId: otherUser.id,
+                    recipientIds, // Now an array
                     conversationId,
                     roomName,
                     callType: "video",
+                    isGroupCall,
                   });
 
                   // Show toast that call is being initiated
-                  toast.info(`Calling ${otherUser.name}...`);
+                  if (isGroupCall) {
+                    toast.info(`Starting group call with ${recipientIds.length} participant(s)...`);
+                  } else {
+                    toast.info(`Calling ${otherUser?.name}...`);
+                  }
 
-                  // Listen for call acceptance
-                  socket.once("call:accepted", ({ roomName: acceptedRoomName }) => {
-                    toast.success("Call accepted!");
+                  // For group calls, navigate immediately (participants can join)
+                  if (isGroupCall) {
                     const displayName = user?.name || user?.username || 'User';
-                    setLocation(`/call/${conversationId}?room=${acceptedRoomName}&name=${displayName}`);
-                  });
-
-                  // Listen for call decline
-                  socket.once("call:declined", ({ recipientName }) => {
-                    toast.error(`${recipientName} declined the call`);
-                  });
-
-                  // Listen for recipient offline
-                  socket.once("call:recipient-offline", () => {
-                    toast.error(`${otherUser.name} is offline`);
-                  });
-
-                  // Set timeout to cancel call after 30 seconds
-                  setTimeout(() => {
-                    socket.emit("call:cancel", {
-                      callerId: user?.id,
-                      recipientId: otherUser.id,
+                    setLocation(`/call/${conversationId}?room=${roomName}&name=${displayName}&isGroup=true`);
+                  } else {
+                    // For 1-on-1 calls, wait for acceptance
+                    socket.once("call:accepted", ({ roomName: acceptedRoomName }) => {
+                      toast.success("Call accepted!");
+                      const displayName = user?.name || user?.username || 'User';
+                      setLocation(`/call/${conversationId}?room=${acceptedRoomName}&name=${displayName}`);
                     });
-                  }, 30000);
+
+                    socket.once("call:declined", ({ recipientName }) => {
+                      toast.error(`${recipientName} declined the call`);
+                    });
+
+                    socket.once("call:recipient-offline", () => {
+                      toast.error(`${otherUser?.name} is offline`);
+                    });
+
+                    // Set timeout to cancel call after 30 seconds
+                    setTimeout(() => {
+                      socket.emit("call:cancel", {
+                        callerId: user?.id,
+                        recipientId: otherUser?.id,
+                      });
+                    }, 30000);
+                  }
+                  
+                  // Listen for offline recipients notification
+                  socket.once("call:some-recipients-offline", ({ offlineRecipients }) => {
+                    toast.warning(`${offlineRecipients.length} participant(s) are offline`);
+                  });
                 }}
                 className="text-sm"
               >
                 <Video className="h-4 w-4 mr-2" />
-                Video Call
+                {currentConversation?.conversation.type === 'group' ? "Start Group Call" : "Video Call"}
               </Button>
               <Button
                 variant="ghost"

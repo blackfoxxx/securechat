@@ -66,42 +66,53 @@ export function setupPresence(httpServer: HTTPServer) {
       }
     });
 
-    // Handle call initiation
+    // Handle call initiation (supports both 1-on-1 and group calls)
     socket.on("call:initiate", ({ 
       callerId, 
       callerName, 
       callerAvatar,
-      recipientId, 
+      recipientIds, // Array of recipient user IDs for group calls
       conversationId, 
       roomName,
-      callType 
+      callType,
+      isGroupCall 
     }: { 
       callerId: number; 
       callerName: string;
       callerAvatar?: string;
-      recipientId: number; 
+      recipientIds: number[]; // Changed from recipientId to recipientIds array
       conversationId: number; 
       roomName: string;
       callType: "video" | "audio";
+      isGroupCall: boolean;
     }) => {
-      console.log(`Call initiated: ${callerName} (${callerId}) calling user ${recipientId}`);
+      console.log(`Call initiated: ${callerName} (${callerId}) calling ${recipientIds.length} user(s)`);
       
-      // Send call notification to recipient's sockets
-      const recipientSockets = onlineUsers.get(recipientId);
-      if (recipientSockets) {
-        recipientSockets.forEach(socketId => {
-          io.to(socketId).emit("call:incoming", {
-            callerId,
-            callerName,
-            callerAvatar,
-            conversationId,
-            roomName,
-            callType,
+      const offlineRecipients: number[] = [];
+      
+      // Send call notification to all recipients
+      recipientIds.forEach(recipientId => {
+        const recipientSockets = onlineUsers.get(recipientId);
+        if (recipientSockets) {
+          recipientSockets.forEach(socketId => {
+            io.to(socketId).emit("call:incoming", {
+              callerId,
+              callerName,
+              callerAvatar,
+              conversationId,
+              roomName,
+              callType,
+              isGroupCall,
+            });
           });
-        });
-      } else {
-        // Recipient is offline, notify caller
-        socket.emit("call:recipient-offline", { recipientId });
+        } else {
+          offlineRecipients.push(recipientId);
+        }
+      });
+      
+      // Notify caller about offline recipients
+      if (offlineRecipients.length > 0) {
+        socket.emit("call:some-recipients-offline", { offlineRecipients });
       }
     });
 

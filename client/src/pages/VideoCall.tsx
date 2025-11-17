@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { ParticipantsList } from "@/components/ParticipantsList";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 /**
  * VideoCall component using Jitsi Meet
@@ -40,8 +42,16 @@ export default function VideoCall() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [callId, setCallId] = useState<number | null>(null);
+  const [showParticipants, setShowParticipants] = useState(true);
+  const [participants, setParticipants] = useState<Array<{
+    id: number;
+    name: string;
+    avatar?: string;
+    joinedAt: Date;
+  }>>([]);
   const jitsiContainerRef = useRef<HTMLDivElement>(null);
   const jitsiApiRef = useRef<JitsiMeetExternalAPI | null>(null);
+  const { user } = useAuth();
 
   const startCallMutation = trpc.calls.startCall.useMutation();
   const endCallMutation = trpc.calls.endCall.useMutation();
@@ -222,7 +232,7 @@ export default function VideoCall() {
   }
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col relative">
+    <div className="h-screen bg-gray-900 flex relative">
       {/* Loading overlay */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
@@ -239,8 +249,33 @@ export default function VideoCall() {
       {/* Jitsi Meet container */}
       <div ref={jitsiContainerRef} className="flex-1" />
 
-      {/* Emergency exit button */}
-      <div className="absolute top-4 right-4 z-20">
+      {/* Participants panel */}
+      {showParticipants && participants.length > 0 && (
+        <div className="w-80 bg-background border-l border-border overflow-hidden">
+          <ParticipantsList 
+            participants={participants}
+            currentUserId={user?.id}
+            className="h-full border-0"
+          />
+        </div>
+      )}
+
+      {/* Control buttons */}
+      <div className="absolute top-4 right-4 z-20 flex gap-2">
+        {/* Toggle participants button */}
+        {participants.length > 0 && (
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={() => setShowParticipants(!showParticipants)}
+            className="shadow-lg"
+            title={showParticipants ? "Hide participants" : "Show participants"}
+          >
+            <Users className="h-4 w-4" />
+          </Button>
+        )}
+        
+        {/* Leave call button */}
         <Button
           variant="destructive"
           onClick={handleEndCall}

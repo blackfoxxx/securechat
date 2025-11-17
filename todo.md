@@ -377,3 +377,21 @@
 - [ ] Add actual ringtone.mp3 file
 - [ ] Prevent duplicate simultaneous calls
 - [ ] Add call busy state handling
+
+
+## Group Video Calls Feature
+
+- [x] Update call_history table to support group calls
+- [x] Add isGroupCall flag to call records
+- [x] Update Socket.IO events for multiple recipients
+- [x] Create group call initiation logic
+- [x] Add "Start Group Call" button in group chats
+- [x] Create ParticipantsList UI component
+- [x] Show active participants in video call
+- [x] Update VideoCall page with participants tracking
+- [x] Track all participants in call history
+- [x] Add participant count display
+- [x] Handle participant audio/video mute states display
+- [x] Add toggle participants panel button
+- [ ] Implement real-time participant join/leave tracking
+- [ ] Test group calls with multiple users

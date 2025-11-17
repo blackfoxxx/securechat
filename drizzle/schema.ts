@@ -154,6 +154,7 @@ export const callHistory = mysqlTable("call_history", {
   id: int("id").autoincrement().primaryKey(),
   conversationId: int("conversationId").notNull(),
   callType: mysqlEnum("callType", ["video", "audio"]).notNull().default("video"),
+  isGroupCall: int("isGroupCall").notNull().default(0), // 0 = 1-on-1, 1 = group call
   initiatedBy: int("initiatedBy").notNull(), // User ID who started the call
   startedAt: timestamp("startedAt").notNull().defaultNow(),
   endedAt: timestamp("endedAt"),

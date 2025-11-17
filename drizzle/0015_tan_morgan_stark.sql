@@ -1,0 +1,1 @@
+ALTER TABLE `call_history` ADD `isGroupCall` int DEFAULT 0 NOT NULL;
