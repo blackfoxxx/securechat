@@ -171,6 +171,7 @@ export async function createMessage(data: {
   fileSize?: number;
   thumbnailUrl?: string;
   audioDuration?: number;
+  replyToId?: number;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -185,6 +186,7 @@ export async function createMessage(data: {
     fileSize: data.fileSize || null,
     thumbnailUrl: data.thumbnailUrl || null,
     audioDuration: data.audioDuration || null,
+    replyToId: data.replyToId || null,
   });
   
   return result;

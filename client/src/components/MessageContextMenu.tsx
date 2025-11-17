@@ -4,13 +4,14 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Copy, Forward, Trash2 } from "lucide-react";
+import { Copy, Forward, Trash2, Reply } from "lucide-react";
 import { ReactNode } from "react";
 
 interface MessageContextMenuProps {
   children: ReactNode;
   onCopy: () => void;
   onForward: () => void;
+  onReply: () => void;
   onDelete: () => void;
   canDelete: boolean;
 }
@@ -19,6 +20,7 @@ export function MessageContextMenu({
   children,
   onCopy,
   onForward,
+  onReply,
   onDelete,
   canDelete,
 }: MessageContextMenuProps) {
@@ -35,6 +37,10 @@ export function MessageContextMenu({
         <ContextMenuItem onClick={onForward}>
           <Forward className="mr-2 h-4 w-4" />
           Forward
+        </ContextMenuItem>
+        <ContextMenuItem onClick={onReply}>
+          <Reply className="mr-2 h-4 w-4" />
+          Reply
         </ContextMenuItem>
         {canDelete && (
           <ContextMenuItem onClick={onDelete} className="text-destructive">

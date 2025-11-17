@@ -58,6 +58,7 @@ export const appRouter = router({
             fileSize?: number;
             thumbnailUrl?: string;
             audioDuration?: number;
+            replyToId?: number;
           };
         }
         throw new Error("Invalid input");
@@ -75,6 +76,7 @@ export const appRouter = router({
           fileSize: input.fileSize,
           thumbnailUrl: input.thumbnailUrl,
           audioDuration: input.audioDuration,
+          replyToId: input.replyToId,
         });
       }),
 

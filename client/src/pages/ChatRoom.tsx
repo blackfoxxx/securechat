@@ -13,6 +13,7 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { MessageReactions } from "@/components/MessageReactions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { ForwardMessageDialog } from "@/components/ForwardMessageDialog";
+import { MessageReply } from "@/components/MessageReply";
 
 export default function ChatRoom() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +28,7 @@ export default function ChatRoom() {
   const [isRecording, setIsRecording] = useState(false);
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
   const [messageToForward, setMessageToForward] = useState<{ id: number; content: string } | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: number; content: string; senderName: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
@@ -252,24 +254,27 @@ export default function ChatRoom() {
           // Send message with file attachment
           sendMessageMutation.mutate({
             conversationId,
-            content: message.trim() || undefined,
+            content: message || `Sent ${selectedFile.type.startsWith('image/') ? 'an image' : 'a file'}`,
             fileUrl: uploadResult.fileUrl,
-            fileName: uploadResult.fileName,
-            fileType: uploadResult.fileType,
-            fileSize: uploadResult.fileSize,
+            fileName: selectedFile.name,
+            fileType: selectedFile.type,
+            fileSize: selectedFile.size,
             thumbnailUrl: uploadResult.thumbnailUrl || undefined,
+            replyToId: replyTo?.id,
           });
+          setReplyTo(null);
         };
         reader.readAsDataURL(selectedFile);
       } catch (error) {
         toast.error("Failed to upload file");
       }
     } else if (message.trim()) {
-      // Send text-only message
       sendMessageMutation.mutate({
         conversationId,
         content: message,
+        replyToId: replyTo?.id,
       });
+      setReplyTo(null);
     }
   };
 
@@ -312,6 +317,10 @@ export default function ChatRoom() {
                 onForward={() => {
                   setMessageToForward({ id: msg.id, content: msg.content || "" });
                   setForwardDialogOpen(true);
+                }}
+                onReply={() => {
+                  const sender = msg.senderId === user?.id ? "You" : "User";
+                  setReplyTo({ id: msg.id, content: msg.content || "File", senderName: sender });
                 }}
                 onDelete={() => {
                   deleteMessageMutation.mutate({ messageId: msg.id });
@@ -450,6 +459,12 @@ export default function ChatRoom() {
             </div>
           </div>
         )}
+
+        {/* Reply Preview */}
+        <MessageReply 
+          replyTo={replyTo}
+          onCancel={() => setReplyTo(null)}
+        />
 
         {isRecording ? (
           <VoiceRecorder 

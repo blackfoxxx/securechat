@@ -42,6 +42,7 @@ export const conversations = mysqlTable("conversations", {
   name: varchar("name", { length: 255 }),
   avatarUrl: text("avatarUrl"),
   createdBy: int("createdBy"), // User ID of group creator
+  wallpaper: text("wallpaper"), // URL to custom wallpaper image
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -50,6 +51,7 @@ export const conversationMembers = mysqlTable("conversation_members", {
   id: int("id").autoincrement().primaryKey(),
   conversationId: int("conversationId").notNull(),
   userId: int("userId").notNull(),
+  isArchived: int("isArchived").default(0).notNull(), // 1 if archived by this user
   joinedAt: timestamp("joinedAt").defaultNow().notNull(),
 });
 
@@ -66,6 +68,8 @@ export const messages = mysqlTable("messages", {
   audioDuration: int("audioDuration"), // Duration in seconds for voice messages
   readBy: text("readBy"), // JSON array of user IDs who have read the message
   reactions: text("reactions"), // JSON object mapping emoji to user IDs: {"👍": [1, 2], "❤️": [3]}
+  replyToId: int("replyToId"), // ID of the message being replied to
+  isStarred: int("isStarred").default(0).notNull(), // 1 if starred
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

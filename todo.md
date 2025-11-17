@@ -43,7 +43,7 @@
 - [x] Document sharing
 - [ ] Contact sync
 - [x] Message forwarding
-- [ ] Message reply/quote
+- [x] Message reply/quote
 - [x] Message reactions (emoji)
 - [ ] Archived chats
 - [ ] Starred messages
@@ -169,3 +169,14 @@
 ## Bug Fixes
 
 - [x] Fix SQL query error in getUserConversations function
+
+
+## Remaining Features to Implement
+
+- [ ] Status/Stories feature - post photos/videos that disappear after 24 hours
+- [ ] Media gallery - view all photos and videos from a conversation
+- [ ] Contact sync - sync contacts from device
+- [x] Message reply/quote - reply to specific messages with context
+- [ ] Archived chats - archive conversations to hide from main list
+- [ ] Starred messages - bookmark important messages
+- [ ] Chat wallpaper customization - set custom backgrounds for chats
