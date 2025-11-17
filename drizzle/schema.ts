@@ -25,4 +25,42 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// Chat-related tables
+export const conversations = mysqlTable("conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  type: mysqlEnum("type", ["direct", "group"]).notNull(),
+  name: varchar("name", { length: 255 }),
+  avatarUrl: text("avatarUrl"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const conversationMembers = mysqlTable("conversation_members", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversationId").notNull(),
+  userId: int("userId").notNull(),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+});
+
+export const messages = mysqlTable("messages", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversationId").notNull(),
+  senderId: int("senderId").notNull(),
+  content: text("content").notNull(),
+  encryptedContent: text("encryptedContent"),
+  type: mysqlEnum("type", ["text", "image", "file", "audio", "video"]).default("text").notNull(),
+  fileUrl: text("fileUrl"),
+  status: mysqlEnum("status", ["sent", "delivered", "read"]).default("sent").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const contacts = mysqlTable("contacts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  contactUserId: int("contactUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Conversation = typeof conversations.$inferSelect;
+export type Message = typeof messages.$inferSelect;
+export type Contact = typeof contacts.$inferSelect;

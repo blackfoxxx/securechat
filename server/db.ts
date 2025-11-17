@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, conversations, conversationMembers, messages, contacts } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,61 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Chat feature queries
+export async function getUserConversations(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const result = await db
+    .select({
+      conversation: conversations,
+      lastMessage: messages,
+    })
+    .from(conversationMembers)
+    .innerJoin(conversations, eq(conversationMembers.conversationId, conversations.id))
+    .leftJoin(messages, eq(messages.conversationId, conversations.id))
+    .where(eq(conversationMembers.userId, userId))
+    .orderBy(conversations.updatedAt);
+    
+  return result;
+}
+
+export async function getConversationMessages(conversationId: number, limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db
+    .select()
+    .from(messages)
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(messages.createdAt)
+    .limit(limit);
+}
+
+export async function createMessage(data: { conversationId: number; senderId: number; content: string; type?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(messages).values({
+    conversationId: data.conversationId,
+    senderId: data.senderId,
+    content: data.content,
+    type: (data.type as any) || "text",
+  });
+  
+  return result;
+}
+
+export async function getUserContacts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db
+    .select({
+      contact: contacts,
+      user: users,
+    })
+    .from(contacts)
+    .innerJoin(users, eq(contacts.contactUserId, users.id))
+    .where(eq(contacts.userId, userId));
+}

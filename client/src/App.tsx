@@ -4,15 +4,21 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { SocketProvider } from "./contexts/SocketContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import Home from "./pages/Home";
+import ChatList from "./pages/ChatList";
+import ChatRoom from "./pages/ChatRoom";
+import VideoCall from "./pages/VideoCall";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/chats"} component={ChatList} />
+      <Route path={"/chat/:id"} component={ChatRoom} />
+      <Route path={"/call/:id"} component={VideoCall} />
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
@@ -26,14 +32,15 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+      <ThemeProvider defaultTheme="light">
+        <LanguageProvider>
+          <SocketProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </SocketProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
