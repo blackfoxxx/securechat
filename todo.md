@@ -77,3 +77,13 @@
 - [x] Registration page with email/password
 - [x] Backend authentication for local registration
 - [x] Password hashing with bcrypt
+
+
+## Real-time Online Status
+
+- [x] Backend: Track user online/offline status with Socket.IO
+- [x] Backend: Emit presence events when users connect/disconnect
+- [x] Frontend: Subscribe to presence events in SocketContext
+- [x] Frontend: Display online indicators in chat list
+- [x] Frontend: Display online indicators in contact modal
+- [ ] Frontend: Update user's lastActive timestamp

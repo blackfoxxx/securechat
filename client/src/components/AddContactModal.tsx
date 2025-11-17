@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { Loader2, Search, User, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import OnlineIndicator from "@/components/OnlineIndicator";
 
 interface AddContactModalProps {
   open: boolean;
@@ -86,12 +87,17 @@ export default function AddContactModal({ open, onOpenChange }: AddContactModalP
                     className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
                     onClick={() => setSelectedUser(user)}
                   >
-                    <Avatar>
-                      <AvatarImage src={user.avatar} />
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar>
+                        <AvatarImage src={user.avatar} />
+                        <AvatarFallback>
+                          <User className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute bottom-0 right-0">
+                        <OnlineIndicator userId={user.id} size="sm" />
+                      </div>
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{user.name || "Unnamed User"}</p>
                       <p className="text-sm text-muted-foreground truncate">@{user.username}</p>

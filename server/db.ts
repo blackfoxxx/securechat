@@ -94,18 +94,45 @@ export async function getUserConversations(userId: number) {
   const db = await getDb();
   if (!db) return [];
   
+  const { sql } = await import("drizzle-orm");
+  
   const result = await db
     .select({
       conversation: conversations,
       lastMessage: messages,
+      otherUserId: sql<number>`(
+        SELECT cm2.userId 
+        FROM conversationMembers cm2 
+        WHERE cm2.conversationId = ${conversations.id} 
+        AND cm2.userId != ${userId} 
+        LIMIT 1
+      )`,
     })
     .from(conversationMembers)
     .innerJoin(conversations, eq(conversationMembers.conversationId, conversations.id))
     .leftJoin(messages, eq(messages.conversationId, conversations.id))
     .where(eq(conversationMembers.userId, userId))
     .orderBy(conversations.updatedAt);
+  
+  // Fetch other user details for each conversation
+  const enriched = await Promise.all(
+    result.map(async (conv) => {
+      if (conv.otherUserId) {
+        const otherUser = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, conv.otherUserId))
+          .limit(1);
+        return {
+          ...conv,
+          otherUser: otherUser[0] || null,
+        };
+      }
+      return { ...conv, otherUser: null };
+    })
+  );
     
-  return result;
+  return enriched;
 }
 
 export async function getConversationMessages(conversationId: number, limit: number = 50) {

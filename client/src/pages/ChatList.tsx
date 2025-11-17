@@ -2,11 +2,13 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { trpc } from "@/lib/trpc";
 import { MessageCircle, Search, User } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import AddContactModal from "@/components/AddContactModal";
+import OnlineIndicator from "@/components/OnlineIndicator";
 
 export default function ChatList() {
   const { user, isAuthenticated } = useAuth();
@@ -83,9 +85,24 @@ export default function ChatList() {
               <Link key={conv.conversation.id} href={`/chat/${conv.conversation.id}`}>
                 <Card className="p-4 hover:bg-accent cursor-pointer transition-colors">
                   <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">
-                        {conv.conversation.name || "Unnamed Conversation"}
+                    {/* Avatar with online indicator */}
+                    <div className="relative">
+                      <Avatar>
+                        <AvatarImage src={conv.otherUser?.avatar || undefined} />
+                        <AvatarFallback>
+                          <User className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      {conv.otherUser?.id && (
+                        <div className="absolute bottom-0 right-0">
+                          <OnlineIndicator userId={conv.otherUser.id} size="sm" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate">
+                        {conv.conversation.name || conv.otherUser?.name || "Unnamed Conversation"}
                       </h3>
                       {conv.lastMessage && (
                         <p className="text-sm text-muted-foreground truncate">
@@ -93,7 +110,7 @@ export default function ChatList() {
                         </p>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground flex-shrink-0">
                       {conv.conversation.updatedAt && 
                         new Date(conv.conversation.updatedAt).toLocaleDateString()}
                     </div>
