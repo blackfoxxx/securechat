@@ -57,10 +57,10 @@ export function setupPresence(httpServer: HTTPServer) {
     socket.on("message:read", async ({ messageId, userId }: { messageId: number; userId: number }) => {
       try {
         const { markMessageAsRead } = await import("./db");
-        await markMessageAsRead(messageId, userId);
+        const result = await markMessageAsRead(messageId, userId);
         
-        // Broadcast to all users
-        io.emit("message:read:update", { messageId, userId });
+        // Broadcast to all users with full readBy data including timestamps
+        io.emit("message:read:update", { messageId, userId, readBy: result.readBy });
       } catch (error) {
         console.error("Error marking message as read:", error);
       }

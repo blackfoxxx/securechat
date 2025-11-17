@@ -513,19 +513,29 @@ export async function markMessageAsRead(messageId: number, userId: number) {
     throw new Error("Message not found");
   }
 
-  // Parse existing readBy array
-  let readBy: number[] = [];
+  // Parse existing readBy array with timestamps
+  // Format: [{ userId: number, readAt: string }, ...]
+  let readBy: Array<{ userId: number; readAt: string }> = [];
   if (message[0].readBy) {
     try {
-      readBy = JSON.parse(message[0].readBy);
+      const parsed = JSON.parse(message[0].readBy);
+      // Handle both old format (array of numbers) and new format (array of objects)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        if (typeof parsed[0] === 'number') {
+          // Old format: convert to new format
+          readBy = parsed.map(id => ({ userId: id, readAt: new Date().toISOString() }));
+        } else {
+          readBy = parsed;
+        }
+      }
     } catch (e) {
       readBy = [];
     }
   }
 
-  // Add userId if not already in the array
-  if (!readBy.includes(userId)) {
-    readBy.push(userId);
+  // Add userId with timestamp if not already in the array
+  if (!readBy.some(r => r.userId === userId)) {
+    readBy.push({ userId, readAt: new Date().toISOString() });
     
     // Update message with new readBy array
     await db
@@ -534,7 +544,7 @@ export async function markMessageAsRead(messageId: number, userId: number) {
       .where(eq(messages.id, messageId));
   }
 
-  return { success: true };
+  return { success: true, readBy };
 }
 
 export async function deleteMessage(messageId: number, userId: number) {

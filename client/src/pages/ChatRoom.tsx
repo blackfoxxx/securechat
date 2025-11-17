@@ -19,6 +19,9 @@ import KeyVerificationDialog from "@/components/KeyVerificationDialog";
 import { CallHistory } from "@/components/CallHistory";
 import { E2EEUnlockDialog } from "@/components/E2EEUnlockDialog";
 import { DecryptedMessage } from "@/components/DecryptedMessage";
+import { TypingIndicator } from "@/components/TypingIndicator";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { ReadReceipts } from "@/components/ReadReceipts";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +45,6 @@ export default function ChatRoom() {
   const { privateKey, isE2EEEnabled } = useE2EE();
   const { socket, connected } = useSocket();
   const [message, setMessage] = useState("");
-  const [typingUsers, setTypingUsers] = useState<{ userId: number; userName: string }[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -56,9 +58,14 @@ export default function ChatRoom() {
   const [e2eeEnabled, setE2eeEnabled] = useState(false);
   const [otherUser, setOtherUser] = useState<{ id: number; name: string; avatar?: string; publicKey?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isTypingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Typing indicator hook
+  const { typingUsers, startTyping, stopTyping } = useTypingIndicator(
+    conversationId,
+    user?.id || 0,
+    user?.name || "User"
+  );
 
   const { data: messages, refetch } = trpc.chat.messages.useQuery(
     { conversationId },
@@ -111,31 +118,15 @@ export default function ChatRoom() {
         refetch();
       });
 
-      // Listen for typing events
-      socket.on("typing:user-started", ({ conversationId: typingConvId, userId, userName }: { conversationId: number; userId: number; userName: string }) => {
-        if (typingConvId === conversationId && userId !== user?.id) {
-          setTypingUsers((prev) => {
-            if (prev.find((u) => u.userId === userId)) return prev;
-            return [...prev, { userId, userName }];
-          });
-        }
-      });
 
-      socket.on("typing:user-stopped", ({ conversationId: typingConvId, userId }: { conversationId: number; userId: number }) => {
-        if (typingConvId === conversationId) {
-          setTypingUsers((prev) => prev.filter((u) => u.userId !== userId));
-        }
-      });
 
       // Listen for read receipt updates
-      socket.on("message:read:update", () => {
+      socket.on("message:read:update", ({ messageId, userId, readBy }: { messageId: number; userId: number; readBy: any }) => {
         refetch(); // Refresh messages to get updated read status
       });
 
       return () => {
         socket.off("new-message");
-        socket.off("typing:user-started");
-        socket.off("typing:user-stopped");
         socket.off("message:read:update");
         socket.emit("leave-conversation", conversationId);
       };
@@ -153,43 +144,29 @@ export default function ChatRoom() {
     // Mark all unread messages from others as read
     messages.forEach((msg: any) => {
       if (msg.senderId !== user.id) {
-        const readBy = msg.readBy ? JSON.parse(msg.readBy) : [];
-        if (!readBy.includes(user.id)) {
+        let readBy: any[] = [];
+        try {
+          if (msg.readBy) {
+            const parsed = JSON.parse(msg.readBy);
+            readBy = Array.isArray(parsed) ? parsed : [];
+          }
+        } catch (e) {
+          readBy = [];
+        }
+        
+        // Check if user has already read this message
+        const hasRead = readBy.some((r: any) => 
+          typeof r === 'number' ? r === user.id : r.userId === user.id
+        );
+        
+        if (!hasRead) {
           socket.emit("message:read", { messageId: msg.id, userId: user.id });
         }
       }
     });
   }, [messages, socket, user]);
 
-  const handleTyping = () => {
-    if (!socket || !user) return;
 
-    // Emit typing start event
-    if (!isTypingRef.current) {
-      socket.emit("typing:start", {
-        conversationId,
-        userId: user.id,
-        userName: user.name || "User",
-      });
-      isTypingRef.current = true;
-    }
-
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Set timeout to stop typing indicator after 3 seconds of inactivity
-    typingTimeoutRef.current = setTimeout(() => {
-      if (socket && user) {
-        socket.emit("typing:stop", {
-          conversationId,
-          userId: user.id,
-        });
-        isTypingRef.current = false;
-      }
-    }, 3000);
-  };
 
   const handleFileSelect = (file: File) => {
     // Validate file size (max 10MB)
@@ -270,16 +247,7 @@ export default function ChatRoom() {
     if (!user) return;
 
     // Stop typing indicator
-    if (socket && isTypingRef.current) {
-      socket.emit("typing:stop", {
-        conversationId,
-        userId: user.id,
-      });
-      isTypingRef.current = false;
-    }
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    stopTyping();
 
     if (selectedFile) {
       // Upload file first
@@ -611,17 +579,13 @@ export default function ChatRoom() {
                   <p className="text-xs opacity-70">
                     {new Date(msg.createdAt).toLocaleTimeString()}
                   </p>
-                  {isSent && (
-                    <span className="text-xs">
-                      {isRead ? (
-                        <CheckCheck className="h-3 w-3 text-blue-500" />
-                      ) : isDelivered ? (
-                        <CheckCheck className="h-3 w-3" />
-                      ) : (
-                        <Check className="h-3 w-3" />
-                      )}
-                    </span>
-                  )}
+                  <ReadReceipts
+                    readBy={msg.readBy || undefined}
+                    senderId={msg.senderId}
+                    currentUserId={user?.id || 0}
+                    users={currentConversation && 'members' in currentConversation ? currentConversation.members as any : []}
+                    isGroupChat={currentConversation?.conversation.type === 'group'}
+                  />
                 </div>
 
                 {/* Message Reactions */}
@@ -643,24 +607,7 @@ export default function ChatRoom() {
         )}
         
         {/* Typing indicator */}
-        {typingUsers.length > 0 && (
-          <div className="flex justify-start">
-            <Card className="p-3 bg-muted">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {typingUsers.length === 1
-                    ? `${typingUsers[0].userName} is typing...`
-                    : `${typingUsers.length} people are typing...`}
-                </span>
-              </div>
-            </Card>
-          </div>
-        )}
+        <TypingIndicator userNames={typingUsers} />
         
         <div ref={messagesEndRef} />
       </div>
@@ -735,7 +682,7 @@ export default function ChatRoom() {
               value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
-                handleTyping();
+                startTyping();
               }}
               onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
               placeholder={isDragging ? "Drop file here..." : "Type a message..."}
