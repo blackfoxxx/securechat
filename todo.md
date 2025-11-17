@@ -509,3 +509,18 @@
 - [x] Add "Enable E2EE" button in profile/settings for existing users
 - [x] Create skip option with warning about security implications
 - [x] Add wizard re-trigger for users who skipped initial setup
+
+
+## User Search with Auto-Complete and Direct Chat
+
+- [x] Create user search API endpoint with username/name matching
+- [x] Implement auto-complete dropdown component
+- [x] Add debounced search input to prevent excessive API calls
+- [x] Display user results with avatar, name, and username
+- [x] Add "Start Chat" action on search results
+- [x] Create or find existing conversation when starting chat
+- [x] Navigate to chat room after conversation creation
+- [x] Handle empty search states and no results
+- [x] Add keyboard navigation for search results (arrow keys, enter)
+- [x] Integrate search into ChatList page
+- [x] Remove requirement to add contact before chatting

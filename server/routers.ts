@@ -38,6 +38,74 @@ export const appRouter = router({
       const { getUserConversations } = await import("./db");
       return getUserConversations(ctx.user.id);
     }),
+    
+    // Create or get existing direct conversation with a user
+    createOrGetConversation: protectedProcedure
+      .input(z.object({ otherUserId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const { conversations, conversationMembers } = await import("../drizzle/schema");
+        const { eq, and, inArray } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+        
+        // Check if conversation already exists between these two users
+        // Find all direct conversations the current user is in
+        const userConversations = await db
+          .select({ conversationId: conversationMembers.conversationId })
+          .from(conversationMembers)
+          .where(eq(conversationMembers.userId, ctx.user.id));
+        
+        const conversationIds = userConversations.map(c => c.conversationId);
+        
+        if (conversationIds.length > 0) {
+          // Check which of these conversations are direct (not group)
+          const directConversations = await db
+            .select({ id: conversations.id })
+            .from(conversations)
+            .where(
+              and(
+                inArray(conversations.id, conversationIds),
+                eq(conversations.type, 'direct')
+              )
+            );
+          
+          // For each direct conversation, check if the other user is in it
+          for (const conv of directConversations) {
+            const members = await db
+              .select({ userId: conversationMembers.userId })
+              .from(conversationMembers)
+              .where(eq(conversationMembers.conversationId, conv.id));
+            
+            const memberIds = members.map(m => m.userId);
+            
+            // If this conversation has exactly 2 members and includes both users
+            if (memberIds.length === 2 && 
+                memberIds.includes(ctx.user.id) && 
+                memberIds.includes(input.otherUserId)) {
+              return { conversationId: conv.id, isNew: false };
+            }
+          }
+        }
+        
+        // No existing conversation found, create new one
+        const [newConversation] = await db
+          .insert(conversations)
+          .values({
+            type: 'direct',
+            createdBy: ctx.user.id,
+          });
+        
+        const conversationId = Number(newConversation.insertId);
+        
+        // Add both users as members
+        await db.insert(conversationMembers).values([
+          { conversationId, userId: ctx.user.id },
+          { conversationId, userId: input.otherUserId },
+        ]);
+        
+        return { conversationId, isNew: true };
+      }),
     messages: protectedProcedure
       .input((val: unknown) => {
         if (typeof val === "object" && val !== null && "conversationId" in val) {
@@ -383,6 +451,41 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const { searchUserByUsername } = await import("./db");
         return searchUserByUsername(input.username);
+      }),
+    
+    // Enhanced search for auto-complete
+    searchUsers: protectedProcedure
+      .input(z.object({ 
+        query: z.string().min(1),
+        limit: z.number().default(10),
+      }))
+      .query(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const { users } = await import("../drizzle/schema");
+        const { or, like, ne } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) return [];
+        
+        // Search by username or name, exclude current user
+        const results = await db
+          .select({
+            id: users.id,
+            username: users.username,
+            name: users.name,
+            avatar: users.avatar,
+            bio: users.bio,
+          })
+          .from(users)
+          .where(
+            or(
+              like(users.username, `%${input.query}%`),
+              like(users.name, `%${input.query}%`)
+            )
+          )
+          .limit(input.limit);
+        
+        // Filter out current user from results
+        return results.filter(u => u.id !== ctx.user.id);
       }),
     
     getPublicKeys: protectedProcedure

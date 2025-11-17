@@ -15,10 +15,13 @@ import { E2EESetupWizard } from "@/components/E2EESetupWizard";
 import { setupE2EE } from "@/lib/e2eeSetup";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import { UserSearchAutocomplete } from "@/components/UserSearchAutocomplete";
+import { useLocation } from "wouter";
 
 export default function ChatList() {
   const { user, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [, setLocation] = useLocation();
   const [isAddContactOpen, setIsAddContactOpen] = useState(false);
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
   const [isBlockedUsersOpen, setIsBlockedUsersOpen] = useState(false);
@@ -28,6 +31,8 @@ export default function ChatList() {
     enabled: isAuthenticated,
   });
   const setupE2EEMutation = trpc.e2ee.setup.useMutation();
+  const createOrGetConversationMutation = trpc.chat.createOrGetConversation.useMutation();
+  const utils = trpc.useUtils();
 
   // Auto-trigger E2EE wizard for new users
   useEffect(() => {
@@ -90,17 +95,35 @@ export default function ChatList() {
             </div>
           </div>
           
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search conversations or add by username..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          {/* User Search with Auto-complete */}
+          <UserSearchAutocomplete
+            onSelectUser={async (selectedUser) => {
+              try {
+                toast.loading("Starting chat...");
+                const result = await createOrGetConversationMutation.mutateAsync({
+                  otherUserId: selectedUser.id,
+                });
+                
+                // Refresh conversations list
+                await utils.chat.conversations.invalidate();
+                
+                toast.dismiss();
+                if (result.isNew) {
+                  toast.success(`Started new chat with ${selectedUser.name || selectedUser.username}`);
+                } else {
+                  toast.success(`Opening chat with ${selectedUser.name || selectedUser.username}`);
+                }
+                
+                // Navigate to the conversation
+                setLocation(`/chat/${result.conversationId}`);
+              } catch (error) {
+                toast.dismiss();
+                console.error("Failed to create conversation:", error);
+                toast.error("Failed to start chat. Please try again.");
+              }
+            }}
+            placeholder="Search users to start chatting..."
+          />
         </div>
 
         {conversations && conversations.length > 0 ? (
