@@ -87,3 +87,13 @@
 - [x] Frontend: Display online indicators in chat list
 - [x] Frontend: Display online indicators in contact modal
 - [ ] Frontend: Update user's lastActive timestamp
+
+
+## Typing Indicators
+
+- [x] Backend: Add Socket.IO events for typing start/stop
+- [x] Backend: Broadcast typing events to conversation participants
+- [x] Frontend: Emit typing events when user types in message input
+- [x] Frontend: Display "User is typing..." indicator in chat room
+- [x] Frontend: Auto-clear typing indicator after timeout
+- [x] Frontend: Debounce typing events to reduce network traffic

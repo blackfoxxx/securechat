@@ -40,6 +40,19 @@ export function setupPresence(httpServer: HTTPServer) {
       handleUserOffline(userId, socket.id, io);
     });
 
+    // Handle typing events
+    socket.on("typing:start", ({ conversationId, userId, userName }: { conversationId: number; userId: number; userName: string }) => {
+      console.log(`User ${userId} started typing in conversation ${conversationId}`);
+      // Broadcast to all users in the conversation except sender
+      socket.broadcast.emit("typing:user-started", { conversationId, userId, userName });
+    });
+
+    socket.on("typing:stop", ({ conversationId, userId }: { conversationId: number; userId: number }) => {
+      console.log(`User ${userId} stopped typing in conversation ${conversationId}`);
+      // Broadcast to all users in the conversation except sender
+      socket.broadcast.emit("typing:user-stopped", { conversationId, userId });
+    });
+
     // Handle disconnect
     socket.on("disconnect", () => {
       console.log(`Socket disconnected: ${socket.id}`);

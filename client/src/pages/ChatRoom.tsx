@@ -14,7 +14,10 @@ export default function ChatRoom() {
   const { user, isAuthenticated } = useAuth();
   const { socket, connected } = useSocket();
   const [message, setMessage] = useState("");
+  const [typingUsers, setTypingUsers] = useState<{ userId: number; userName: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
 
   const { data: messages, refetch } = trpc.chat.messages.useQuery(
     { conversationId },
@@ -36,19 +39,79 @@ export default function ChatRoom() {
         refetch();
       });
 
+      // Listen for typing events
+      socket.on("typing:user-started", ({ conversationId: typingConvId, userId, userName }: { conversationId: number; userId: number; userName: string }) => {
+        if (typingConvId === conversationId && userId !== user?.id) {
+          setTypingUsers((prev) => {
+            if (prev.find((u) => u.userId === userId)) return prev;
+            return [...prev, { userId, userName }];
+          });
+        }
+      });
+
+      socket.on("typing:user-stopped", ({ conversationId: typingConvId, userId }: { conversationId: number; userId: number }) => {
+        if (typingConvId === conversationId) {
+          setTypingUsers((prev) => prev.filter((u) => u.userId !== userId));
+        }
+      });
+
       return () => {
         socket.off("new-message");
+        socket.off("typing:user-started");
+        socket.off("typing:user-stopped");
         socket.emit("leave-conversation", conversationId);
       };
     }
-  }, [socket, connected, conversationId, refetch]);
+  }, [socket, connected, conversationId, refetch, user?.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleTyping = () => {
+    if (!socket || !user) return;
+
+    // Emit typing start event
+    if (!isTypingRef.current) {
+      socket.emit("typing:start", {
+        conversationId,
+        userId: user.id,
+        userName: user.name || "User",
+      });
+      isTypingRef.current = true;
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set timeout to stop typing indicator after 3 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socket && user) {
+        socket.emit("typing:stop", {
+          conversationId,
+          userId: user.id,
+        });
+        isTypingRef.current = false;
+      }
+    }, 3000);
+  };
+
   const handleSendMessage = () => {
     if (message.trim() && user) {
+      // Stop typing indicator
+      if (socket && isTypingRef.current) {
+        socket.emit("typing:stop", {
+          conversationId,
+          userId: user.id,
+        });
+        isTypingRef.current = false;
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
       sendMessageMutation.mutate({
         conversationId,
         content: message,
@@ -98,6 +161,27 @@ export default function ChatRoom() {
             No messages yet. Start the conversation!
           </div>
         )}
+        
+        {/* Typing indicator */}
+        {typingUsers.length > 0 && (
+          <div className="flex justify-start">
+            <Card className="p-3 bg-muted">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {typingUsers.length === 1
+                    ? `${typingUsers[0].userName} is typing...`
+                    : `${typingUsers.length} people are typing...`}
+                </span>
+              </div>
+            </Card>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
 
@@ -105,7 +189,10 @@ export default function ChatRoom() {
         <div className="flex gap-2">
           <Input
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              handleTyping();
+            }}
             onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
             placeholder="Type a message..."
             className="flex-1"
