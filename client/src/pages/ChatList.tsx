@@ -4,16 +4,18 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { trpc } from "@/lib/trpc";
-import { MessageCircle, Search, User } from "lucide-react";
+import { MessageCircle, Search, User, Users } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import AddContactModal from "@/components/AddContactModal";
+import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import OnlineIndicator from "@/components/OnlineIndicator";
 
 export default function ChatList() {
   const { user, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddContactOpen, setIsAddContactOpen] = useState(false);
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
   const { data: conversations, isLoading } = trpc.chat.conversations.useQuery(undefined, {
     enabled: isAuthenticated,
   });
@@ -53,6 +55,10 @@ export default function ChatList() {
               <Button onClick={() => setIsAddContactOpen(true)}>
                 <MessageCircle className="mr-2 h-4 w-4" />
                 New Chat
+              </Button>
+              <Button variant="outline" onClick={() => setIsCreateGroupOpen(true)}>
+                <Users className="mr-2 h-4 w-4" />
+                New Group
               </Button>
             </div>
           </div>
@@ -140,6 +146,7 @@ export default function ChatList() {
       </div>
       
       <AddContactModal open={isAddContactOpen} onOpenChange={setIsAddContactOpen} />
+      <CreateGroupDialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen} />
     </div>
   );
 }

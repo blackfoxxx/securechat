@@ -112,3 +112,31 @@
 - [x] Frontend: Display file icons and download buttons for documents
 - [x] Frontend: Add image preview/lightbox on click
 - [x] Frontend: Validate file size and type before upload
+
+
+## Voice Messages
+
+- [x] Frontend: Add microphone button to chat input
+- [x] Frontend: Implement audio recording with MediaRecorder API
+- [x] Frontend: Show recording indicator with timer
+- [x] Frontend: Add cancel and send buttons during recording
+- [x] Frontend: Display voice message waveform in chat bubbles
+- [x] Frontend: Add play/pause controls for voice messages
+- [x] Backend: Accept audio file uploads (WebM/MP3 format)
+- [x] Backend: Store voice messages in S3
+- [x] Backend: Track audio duration metadata
+
+## Group Chat Functionality
+
+- [x] Update database schema for group conversations
+- [x] Backend: Create group conversation endpoint
+- [x] Backend: Add/remove group members endpoints
+- [ ] Backend: Update group name and avatar endpoints
+- [x] Frontend: Create new group dialog
+- [x] Frontend: Select multiple contacts for group
+- [x] Frontend: Set group name and avatar
+- [ ] Frontend: Group chat UI with member list
+- [ ] Frontend: Add members to existing group
+- [ ] Frontend: Remove members from group (admin only)
+- [ ] Frontend: Leave group functionality
+- [ ] Frontend: Show group member count in chat list

@@ -29,6 +29,20 @@
       "when": 1763379236086,
       "tag": "0003_last_sumo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1763382071781,
+      "tag": "0004_curvy_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1763382279602,
+      "tag": "0005_dry_gressill",
+      "breakpoints": true
     }
   ]
 }

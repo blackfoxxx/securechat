@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, conversations, conversationMembers, messages, contacts } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -157,6 +157,7 @@ export async function createMessage(data: {
   fileType?: string;
   fileSize?: number;
   thumbnailUrl?: string;
+  audioDuration?: number;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -170,6 +171,7 @@ export async function createMessage(data: {
     fileType: data.fileType || null,
     fileSize: data.fileSize || null,
     thumbnailUrl: data.thumbnailUrl || null,
+    audioDuration: data.audioDuration || null,
   });
   
   return result;
@@ -386,4 +388,77 @@ export async function registerUser(data: { email: string; password: string; name
   });
 
   return { success: true, message: "Account created successfully" };
+}
+
+
+export async function createGroupConversation(data: {
+  name: string;
+  createdBy: number;
+  memberIds: number[];
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Create the conversation
+  const conversationResult: any = await db.insert(conversations).values({
+    type: "group",
+    name: data.name,
+    createdBy: data.createdBy,
+  });
+
+  const conversationId = Number(conversationResult.insertId);
+
+  // Add all members to the conversation
+  const memberValues = data.memberIds.map(userId => ({
+    conversationId,
+    userId,
+  }));
+
+  await db.insert(conversationMembers).values(memberValues);
+
+  return { conversationId };
+}
+
+export async function addGroupMember(conversationId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(conversationMembers).values({
+    conversationId,
+    userId,
+  });
+
+  return { success: true };
+}
+
+export async function removeGroupMember(conversationId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .delete(conversationMembers)
+    .where(
+      and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, userId)
+      )
+    );
+
+  return { success: true };
+}
+
+export async function getGroupMembers(conversationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const members = await db
+    .select({
+      user: users,
+      joinedAt: conversationMembers.joinedAt,
+    })
+    .from(conversationMembers)
+    .innerJoin(users, eq(conversationMembers.userId, users.id))
+    .where(eq(conversationMembers.conversationId, conversationId));
+
+  return members;
 }

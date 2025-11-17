@@ -41,6 +41,7 @@ export const conversations = mysqlTable("conversations", {
   type: mysqlEnum("type", ["direct", "group"]).notNull(),
   name: varchar("name", { length: 255 }),
   avatarUrl: text("avatarUrl"),
+  createdBy: int("createdBy"), // User ID of group creator
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -62,6 +63,7 @@ export const messages = mysqlTable("messages", {
   fileType: varchar("fileType", { length: 100 }),
   fileSize: int("fileSize"),
   thumbnailUrl: text("thumbnailUrl"),
+  audioDuration: int("audioDuration"), // Duration in seconds for voice messages
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

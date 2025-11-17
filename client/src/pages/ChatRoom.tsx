@@ -4,10 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "wouter";
 import { toast } from "sonner";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { AudioPlayer } from "@/components/AudioPlayer";
 
 export default function ChatRoom() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +21,7 @@ export default function ChatRoom() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
@@ -148,6 +151,40 @@ export default function ChatRoom() {
     }
   };
 
+  const handleVoiceRecordingComplete = async (audioBlob: Blob, duration: number) => {
+    setIsRecording(false);
+    
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => { const base64Data = (reader.result as string).split(',')[1];
+        
+        const uploadResult = await uploadFileMutation.mutateAsync({
+          fileName: `voice-${Date.now()}.webm`,
+          fileType: 'audio/webm',
+          fileSize: audioBlob.size,
+          fileData: base64Data,
+        });
+
+        // Send message with voice note
+        sendMessageMutation.mutate({
+          conversationId,
+          fileUrl: uploadResult.fileUrl,
+          fileName: uploadResult.fileName,
+          fileType: uploadResult.fileType,
+          fileSize: uploadResult.fileSize,
+          audioDuration: duration,
+        });
+      };
+      reader.readAsDataURL(audioBlob);
+    } catch (error) {
+      toast.error("Failed to send voice message");
+    }
+  };
+
+  const handleVoiceRecordingCancel = () => {
+    setIsRecording(false);
+  };
+
   const handleSendMessage = async () => {
     if (!user) return;
 
@@ -241,8 +278,15 @@ export default function ChatRoom() {
                   />
                 )}
                 
+                {/* Voice message */}
+                {msg.fileUrl && msg.fileType?.startsWith('audio/') && (
+                  <div className="mb-2">
+                    <AudioPlayer audioUrl={msg.fileUrl} duration={msg.audioDuration || undefined} />
+                  </div>
+                )}
+                
                 {/* File attachment */}
-                {msg.fileUrl && !msg.fileType?.startsWith('image/') && (
+                {msg.fileUrl && !msg.fileType?.startsWith('image/') && !msg.fileType?.startsWith('audio/') && (
                   <a 
                     href={msg.fileUrl} 
                     target="_blank" 
@@ -327,40 +371,57 @@ export default function ChatRoom() {
           </div>
         )}
 
-        <div className="flex gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFileSelect(file);
-            }}
+        {isRecording ? (
+          <VoiceRecorder 
+            onRecordingComplete={handleVoiceRecordingComplete}
+            onCancel={handleVoiceRecordingCancel}
           />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          <Input
-            value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
-              handleTyping();
-            }}
-            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-            placeholder={isDragging ? "Drop file here..." : "Type a message..."}
-            className="flex-1"
-          />
-          <Button 
-            onClick={handleSendMessage} 
-            disabled={!message.trim() && !selectedFile}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileSelect(file);
+              }}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Input
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                handleTyping();
+              }}
+              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+              placeholder={isDragging ? "Drop file here..." : "Type a message..."}
+              className="flex-1"
+            />
+            {!message.trim() && !selectedFile ? (
+              <Button 
+                variant="outline"
+                size="icon"
+                onClick={() => setIsRecording(true)}
+              >
+                <Mic className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSendMessage} 
+                disabled={!message.trim() && !selectedFile}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

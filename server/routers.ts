@@ -57,6 +57,7 @@ export const appRouter = router({
             fileType?: string;
             fileSize?: number;
             thumbnailUrl?: string;
+            audioDuration?: number;
           };
         }
         throw new Error("Invalid input");
@@ -73,6 +74,23 @@ export const appRouter = router({
           fileType: input.fileType,
           fileSize: input.fileSize,
           thumbnailUrl: input.thumbnailUrl,
+          audioDuration: input.audioDuration,
+        });
+      }),
+
+    createGroup: protectedProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null && "name" in val && "memberIds" in val) {
+          return val as { name: string; memberIds: number[] };
+        }
+        throw new Error("Invalid input");
+      })
+      .mutation(async ({ ctx, input }) => {
+        const { createGroupConversation } = await import("./db");
+        return createGroupConversation({
+          name: input.name,
+          createdBy: ctx.user.id,
+          memberIds: [...input.memberIds, ctx.user.id], // Include creator
         });
       }),
 
