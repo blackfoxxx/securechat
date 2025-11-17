@@ -10,6 +10,7 @@ import { useParams } from "wouter";
 import { toast } from "sonner";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { AudioPlayer } from "@/components/AudioPlayer";
+import { MessageReactions } from "@/components/MessageReactions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { ForwardMessageDialog } from "@/components/ForwardMessageDialog";
 
@@ -318,7 +319,7 @@ export default function ChatRoom() {
                 canDelete={msg.senderId === user?.id}
               >
                 <Card
-                  className={`p-3 max-w-[70%] ${
+                  className={`group p-3 max-w-[70%] ${
                     msg.senderId === user?.id
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
@@ -371,6 +372,14 @@ export default function ChatRoom() {
                     </span>
                   )}
                 </div>
+
+                {/* Message Reactions */}
+                <MessageReactions
+                  messageId={msg.id}
+                  reactions={msg.reactions}
+                  currentUserId={user!.id}
+                  onReactionUpdate={refetch}
+                />
               </Card>
               </MessageContextMenu>
             </div>

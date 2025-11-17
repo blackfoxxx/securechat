@@ -78,6 +78,30 @@ export const appRouter = router({
         });
       }),
 
+    addReaction: protectedProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null && "messageId" in val && "emoji" in val) {
+          return val as { messageId: number; emoji: string };
+        }
+        throw new Error("Invalid input");
+      })
+      .mutation(async ({ ctx, input }) => {
+        const { addMessageReaction } = await import("./db");
+        return addMessageReaction(input.messageId, ctx.user.id, input.emoji);
+      }),
+
+    removeReaction: protectedProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null && "messageId" in val && "emoji" in val) {
+          return val as { messageId: number; emoji: string };
+        }
+        throw new Error("Invalid input");
+      })
+      .mutation(async ({ ctx, input }) => {
+        const { removeMessageReaction } = await import("./db");
+        return removeMessageReaction(input.messageId, ctx.user.id, input.emoji);
+      }),
+
     deleteMessage: protectedProcedure
       .input((val: unknown) => {
         if (typeof val === "object" && val !== null && "messageId" in val) {
@@ -198,6 +222,37 @@ export const appRouter = router({
   
   // Admin router
   admin: router({
+    sendNotification: protectedProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null && "userId" in val && "title" in val && "message" in val) {
+          return val as { userId: number; title: string; message: string };
+        }
+        throw new Error("Invalid input");
+      })
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized");
+        }
+        // TODO: Implement notification sending logic
+        return { success: true, message: "Notification sent" };
+      }),
+
+    broadcastNotification: protectedProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null && "title" in val && "message" in val) {
+          return val as { title: string; message: string };
+        }
+        throw new Error("Invalid input");
+      })
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized");
+        }
+        // TODO: Implement broadcast notification logic
+        return { success: true, message: "Broadcast sent" };
+      }),
+
+
     listUsers: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") {
         throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });

@@ -522,3 +522,56 @@ export async function deleteMessage(messageId: number, userId: number) {
 
   return { success: true };
 }
+
+
+export async function addMessageReaction(messageId: number, userId: number, emoji: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Get current reactions
+  const message = await db.select().from(messages).where(eq(messages.id, messageId)).limit(1);
+  if (message.length === 0) throw new Error("Message not found");
+
+  const currentReactions = message[0].reactions ? JSON.parse(message[0].reactions) : {};
+  
+  // Add user to emoji reactions
+  if (!currentReactions[emoji]) {
+    currentReactions[emoji] = [];
+  }
+  if (!currentReactions[emoji].includes(userId)) {
+    currentReactions[emoji].push(userId);
+  }
+
+  // Update message
+  await db.update(messages)
+    .set({ reactions: JSON.stringify(currentReactions) })
+    .where(eq(messages.id, messageId));
+
+  return { success: true, reactions: currentReactions };
+}
+
+export async function removeMessageReaction(messageId: number, userId: number, emoji: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Get current reactions
+  const message = await db.select().from(messages).where(eq(messages.id, messageId)).limit(1);
+  if (message.length === 0) throw new Error("Message not found");
+
+  const currentReactions = message[0].reactions ? JSON.parse(message[0].reactions) : {};
+  
+  // Remove user from emoji reactions
+  if (currentReactions[emoji]) {
+    currentReactions[emoji] = currentReactions[emoji].filter((id: number) => id !== userId);
+    if (currentReactions[emoji].length === 0) {
+      delete currentReactions[emoji];
+    }
+  }
+
+  // Update message
+  await db.update(messages)
+    .set({ reactions: JSON.stringify(currentReactions) })
+    .where(eq(messages.id, messageId));
+
+  return { success: true, reactions: currentReactions };
+}

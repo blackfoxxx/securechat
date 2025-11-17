@@ -5,16 +5,16 @@
 - [x] Database schema for users, conversations, messages
 - [x] User authentication and profile management
 - [x] Chat list view with conversations
-- [ ] Real-time messaging with Socket.IO integration
+- [x] Real-time messaging with Socket.IO integration
 - [ ] Message encryption/decryption (E2EE foundation)
-- [ ] Typing indicators and presence status
+- [x] Typing indicators and presence status
 - [x] Audio/video calling with LiveKit
-- [ ] Contact management and user search
-- [ ] Group chat functionality
+- [x] Contact management and user search
+- [x] Group chat functionality
 - [x] RTL support for Arabic language
 - [x] Internationalization (English and Arabic)
-- [ ] File upload and media sharing
-- [ ] Message read receipts and delivery status
+- [x] File upload and media sharing
+- [x] Message read receipts and delivery status
 
 
 ## New Features - Admin Dashboard
@@ -29,8 +29,8 @@
 - [x] User analytics - storage used calculation
 - [x] User analytics - message count statistics
 - [x] User analytics - online/offline status
-- [ ] Send notifications to specific users
-- [ ] Send broadcast notifications to all users
+- [x] Send notifications to specific users
+- [x] Send broadcast notifications to all users
 - [x] User search and filtering
 - [ ] Export user data to CSV
 - [ ] User activity logs
@@ -38,13 +38,13 @@
 ## New Features - WhatsApp-like Features
 
 - [ ] Status/Stories feature
-- [ ] Voice message recording and playback
+- [x] Voice message recording and playback
 - [ ] Media gallery (photos, videos)
-- [ ] Document sharing
+- [x] Document sharing
 - [ ] Contact sync
-- [ ] Message forwarding
+- [x] Message forwarding
 - [ ] Message reply/quote
-- [ ] Message reactions (emoji)
+- [x] Message reactions (emoji)
 - [ ] Archived chats
 - [ ] Starred messages
 - [ ] Chat wallpaper customization
@@ -57,13 +57,13 @@
 
 ## New Features - User System & Profile
 
-- [ ] User registration with email and password
-- [ ] Username setup page (unique username validation)
+- [x] User registration with email and password
+- [x] Username setup page (unique username validation)
 - [x] Update database schema to include username field
 - [x] Profile page with avatar upload
 - [x] Profile page with notification preferences
 - [x] Username-based contact search
-- [ ] Add contacts by username functionality
+- [x] Add contacts by username functionality
 - [x] Message search in chat list
 - [x] Filter conversations by contact name or message content
 

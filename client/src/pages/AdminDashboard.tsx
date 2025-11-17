@@ -23,10 +23,11 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
-import { Users, UserPlus, Bell, Activity, HardDrive, Clock } from "lucide-react";
+import { Users, UserPlus, Bell, Activity, HardDrive, Clock, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { SendNotificationDialog } from "@/components/SendNotificationDialog";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -34,6 +35,8 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "" });
+  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{ id: number; name: string } | null>(null);
 
   // Redirect if not admin
   if (!loading && user?.role !== "admin") {
@@ -122,13 +125,24 @@ export default function AdminDashboard() {
               Manage users, view analytics, and send notifications
             </p>
           </div>
-          <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add User
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedUser(null);
+                setNotificationDialogOpen(true);
+              }}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Broadcast
+            </Button>
+            <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Add User
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
@@ -177,6 +191,7 @@ export default function AdminDashboard() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -290,23 +305,27 @@ export default function AdminDashboard() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setLocation(`/admin/users/${user.id}`)}
-                        >
-                          View
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                          disabled={user.role === "admin"}
-                        >
-                          Delete
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser({ id: user.id, name: user.name || "User" });
+                              setNotificationDialogOpen(true);
+                            }}
+                          >
+                            <Bell className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user.id)}
+                            disabled={user.role === "admin"}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>                    </TableRow>
                   ))}
                 </TableBody>
               </Table>
@@ -314,6 +333,14 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Send Notification Dialog */}
+      <SendNotificationDialog
+        open={notificationDialogOpen}
+        onOpenChange={setNotificationDialogOpen}
+        userId={selectedUser?.id}
+        userName={selectedUser?.name}
+      />
     </DashboardLayout>
   );
 }
