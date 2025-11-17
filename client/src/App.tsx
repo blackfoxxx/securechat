@@ -9,6 +9,7 @@ import { IncomingCallModal } from "./components/IncomingCallModal";
 import { useLocation } from "wouter";
 import { useAuth } from "./_core/hooks/useAuth";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { E2EEProvider } from "./contexts/E2EEContext";
 import Home from "./pages/Home";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
@@ -121,7 +122,9 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <LanguageProvider>
           <SocketProvider>
-            <AppContent />
+            <E2EEProvider>
+              <AppContent />
+            </E2EEProvider>
           </SocketProvider>
         </LanguageProvider>
       </ThemeProvider>
