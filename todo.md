@@ -273,3 +273,67 @@
 - [ ] Integrate logging into login/logout flows (requires OAuth callback modification)
 - [ ] Integrate logging into file uploads
 - [ ] Integrate logging into contact operations
+
+
+## Offline/Self-Hosted Conversion (M2M Deployment)
+
+- [ ] Remove Manus OAuth dependency
+- [ ] Implement local username/password authentication
+- [ ] Update login/register pages for local auth
+- [ ] Remove OAuth callback routes
+- [ ] Replace LiveKit with self-hosted Jitsi Meet
+- [ ] Update video call components for Jitsi
+- [ ] Add Jitsi Meet server setup instructions
+- [ ] Replace S3 storage with local filesystem
+- [ ] Update file upload/download to use local storage
+- [ ] Create uploads directory structure
+- [ ] Remove external API dependencies (LLM, Forge API)
+- [ ] Remove analytics dependencies
+- [ ] Update environment configuration for offline mode
+- [ ] Create Docker Compose for full stack deployment
+- [ ] Add Jitsi Meet to Docker Compose
+- [ ] Add MySQL to Docker Compose
+- [ ] Create offline deployment guide
+- [ ] Create network isolation testing guide
+- [ ] Update installation script for offline mode
+
+
+## Android Mobile App Development
+
+- [ ] Initialize React Native project
+- [ ] Configure Android build settings
+- [ ] Set up React Navigation for mobile
+- [ ] Create authentication screens (Login, Register)
+- [ ] Create chat list screen
+- [ ] Create chat room screen
+- [ ] Implement Socket.IO client for React Native
+- [ ] Port E2EE crypto utilities (react-native-crypto)
+- [ ] Implement message encryption/decryption
+- [ ] Add key verification feature
+- [ ] Integrate camera for photos
+- [ ] Add file picker for attachments
+- [ ] Implement local notifications
+- [ ] Add contact management screens
+- [ ] Create user profile screen
+- [ ] Add settings screen
+- [ ] Configure M2M network connectivity
+- [ ] Test offline functionality
+- [ ] Generate release APK
+- [ ] Create installation guide
+- [ ] Document API endpoint configuration
+
+
+## Jitsi Meet Video Call Integration
+
+- [x] Remove LiveKit dependency from package.json
+- [x] Update VideoCall component for Jitsi Meet
+- [x] Add Jitsi Meet iframe integration
+- [x] Configure Jitsi server URL (environment variable)
+- [x] Add call initiation button in ChatRoom
+- [x] Generate unique room names for calls
+- [x] Create Docker Compose for Jitsi Meet
+- [x] Configure Jitsi for M2M network
+- [x] Add Jitsi setup documentation
+- [x] Document offline deployment process
+- [ ] Add call notification system
+- [ ] Test video calls on local network

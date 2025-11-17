@@ -83,7 +83,7 @@ export default function Home() {
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="font-semibold text-lg mb-2">📞 Voice & Video Calls</h3>
-              <p className="text-sm text-gray-600">Crystal clear audio and HD video calling powered by LiveKit</p>
+              <p className="text-sm text-gray-600">Crystal clear audio and HD video calling powered by Jitsi Meet</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="font-semibold text-lg mb-2">🌍 RTL Support</h3>

@@ -4,9 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { toast } from "sonner";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { AudioPlayer } from "@/components/AudioPlayer";
@@ -28,6 +28,7 @@ import {
 export default function ChatRoom() {
   const { id } = useParams<{ id: string }>();
   const conversationId = parseInt(id || "0");
+  const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { privateKey, isE2EEEnabled } = useE2EE();
   const { socket, connected } = useSocket();
@@ -331,17 +332,34 @@ export default function ChatRoom() {
               : 'Chat Room'}
           </h2>
         </div>
-        {otherUser && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setVerificationDialogOpen(true)}
-            className="text-sm"
-          >
-            <Shield className="h-4 w-4 mr-2" />
-            Verify
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {otherUser && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const roomName = `chat-${conversationId}-${Date.now()}`;
+                  const displayName = user?.name || user?.username || 'User';
+                  setLocation(`/call/${conversationId}?room=${roomName}&name=${displayName}`);
+                }}
+                className="text-sm"
+              >
+                <Video className="h-4 w-4 mr-2" />
+                Video Call
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setVerificationDialogOpen(true)}
+                className="text-sm"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Verify
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

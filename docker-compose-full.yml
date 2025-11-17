@@ -1,0 +1,194 @@
+version: '3.8'
+
+# Complete Secure Chat Stack with Jitsi Meet for M2M Networks
+# This Docker Compose file deploys:
+# - Secure Chat Application (Node.js + React)
+# - MySQL Database
+# - Jitsi Meet Video Conferencing Server
+#
+# All services run on the local network without internet dependency
+
+services:
+  # ============================================
+  # Secure Chat Application
+  # ============================================
+  app:
+    build: .
+    container_name: secure-chat-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://chatuser:${DB_PASSWORD}@db:3306/secure_chat
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - OWNER_OPEN_ID=${OWNER_OPEN_ID}
+      - OWNER_NAME=${OWNER_NAME}
+      - VITE_APP_TITLE=Secure Chat Web
+      - VITE_APP_LOGO=/logo.svg
+      - VITE_JITSI_DOMAIN=jitsi.local:8443
+    depends_on:
+      - db
+      - jitsi-web
+    networks:
+      - secure-chat-network
+    restart: unless-stopped
+
+  # ============================================
+  # MySQL Database
+  # ============================================
+  db:
+    image: mysql:8
+    container_name: secure-chat-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=secure_chat
+      - MYSQL_USER=chatuser
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - secure-chat-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+
+  # ============================================
+  # Jitsi Meet - Video Conferencing
+  # ============================================
+  
+  # Jitsi Web (Frontend)
+  jitsi-web:
+    image: jitsi/web:stable
+    container_name: jitsi-web
+    ports:
+      - "8443:443"
+      - "8080:80"
+    environment:
+      - ENABLE_AUTH=0
+      - ENABLE_GUESTS=1
+      - ENABLE_LETSENCRYPT=0
+      - ENABLE_HTTP_REDIRECT=1
+      - ENABLE_TRANSCRIPTIONS=0
+      - DISABLE_HTTPS=0
+      - JICOFO_AUTH_USER=focus
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_BOSH_URL_BASE=http://xmpp.meet.jitsi:5280
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - TZ=UTC
+      - PUBLIC_URL=https://jitsi.local:8443
+    volumes:
+      - jitsi_web_config:/config
+      - jitsi_web_transcripts:/usr/share/jitsi-meet/transcripts
+    networks:
+      - secure-chat-network
+    depends_on:
+      - prosody
+      - jicofo
+      - jvb
+    restart: unless-stopped
+
+  # Jitsi Prosody (XMPP Server)
+  prosody:
+    image: jitsi/prosody:stable
+    container_name: jitsi-prosody
+    environment:
+      - AUTH_TYPE=internal
+      - ENABLE_AUTH=0
+      - ENABLE_GUESTS=1
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_MODULES=
+      - XMPP_MUC_MODULES=
+      - XMPP_INTERNAL_MUC_MODULES=
+      - JICOFO_COMPONENT_SECRET=${JICOFO_COMPONENT_SECRET}
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - TZ=UTC
+    volumes:
+      - prosody_config:/config
+      - prosody_plugins:/prosody-plugins-custom
+    networks:
+      - secure-chat-network
+    restart: unless-stopped
+
+  # Jitsi Jicofo (Conference Focus)
+  jicofo:
+    image: jitsi/jicofo:stable
+    container_name: jitsi-jicofo
+    environment:
+      - ENABLE_AUTH=0
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_SERVER=prosody
+      - JICOFO_COMPONENT_SECRET=${JICOFO_COMPONENT_SECRET}
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - JVB_BREWERY_MUC=jvbbrewery
+      - TZ=UTC
+    volumes:
+      - jicofo_config:/config
+    networks:
+      - secure-chat-network
+    depends_on:
+      - prosody
+    restart: unless-stopped
+
+  # Jitsi Video Bridge (Media Server)
+  jvb:
+    image: jitsi/jvb:stable
+    container_name: jitsi-jvb
+    ports:
+      - "10000:10000/udp"
+      - "4443:4443"
+    environment:
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_SERVER=prosody
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - JVB_BREWERY_MUC=jvbbrewery
+      - JVB_PORT=10000
+      - JVB_TCP_HARVESTER_DISABLED=true
+      - JVB_TCP_PORT=4443
+      - JVB_STUN_SERVERS=stun.l.google.com:19302
+      - TZ=UTC
+    volumes:
+      - jvb_config:/config
+    networks:
+      - secure-chat-network
+    depends_on:
+      - prosody
+    restart: unless-stopped
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  mysql_data:
+    driver: local
+  jitsi_web_config:
+    driver: local
+  jitsi_web_transcripts:
+    driver: local
+  prosody_config:
+    driver: local
+  prosody_plugins:
+    driver: local
+  jicofo_config:
+    driver: local
+  jvb_config:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  secure-chat-network:
+    driver: bridge
