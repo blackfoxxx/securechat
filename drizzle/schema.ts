@@ -13,10 +13,20 @@ export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
+  /** Unique username for user identification and adding contacts */
+  username: varchar("username", { length: 50 }).unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  /** Hashed password for local authentication */
+  passwordHash: text("passwordHash"),
+  /** Avatar URL */
+  avatar: text("avatar"),
+  /** User bio/status */
+  bio: text("bio"),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  /** Notification preferences stored as JSON */
+  notificationPreferences: text("notificationPreferences"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

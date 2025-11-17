@@ -209,3 +209,80 @@ export async function deleteUser(userId: number) {
   await db.delete(users).where(eq(users.id, userId));
   return { success: true };
 }
+
+
+// User profile functions
+export async function updateUserProfile(
+  userId: number,
+  data: { username?: string; name?: string; bio?: string; avatar?: string }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if username is being updated and if it's already taken
+  if (data.username) {
+    const existing = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, data.username))
+      .limit(1);
+    
+    if (existing.length > 0 && existing[0].id !== userId) {
+      throw new Error("Username already taken");
+    }
+  }
+
+  await db
+    .update(users)
+    .set(data)
+    .where(eq(users.id, userId));
+
+  return { success: true };
+}
+
+export async function updateUserNotifications(
+  userId: number,
+  preferences: Record<string, boolean>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(users)
+    .set({ notificationPreferences: JSON.stringify(preferences) })
+    .where(eq(users.id, userId));
+
+  return { success: true };
+}
+
+export async function checkUsernameAvailable(username: string) {
+  const db = await getDb();
+  if (!db) return { available: false };
+
+  const existing = await db
+    .select()
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+
+  return { available: existing.length === 0 };
+}
+
+export async function searchUserByUsername(username: string) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const results = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      name: users.name,
+      avatar: users.avatar,
+      bio: users.bio,
+    })
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(10);
+
+  return results;
+}

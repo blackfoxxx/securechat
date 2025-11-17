@@ -53,3 +53,16 @@
 ## Bug Fixes
 
 - [x] Fix /chats route returning 404 error
+
+
+## New Features - User System & Profile
+
+- [ ] User registration with email and password
+- [ ] Username setup page (unique username validation)
+- [x] Update database schema to include username field
+- [x] Profile page with avatar upload
+- [x] Profile page with notification preferences
+- [x] Username-based contact search
+- [ ] Add contacts by username functionality
+- [x] Message search in chat list
+- [x] Filter conversations by contact name or message content

@@ -15,6 +15,13 @@
       "when": 1763376052308,
       "tag": "0001_futuristic_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1763378096943,
+      "tag": "0002_big_anthem",
+      "breakpoints": true
     }
   ]
 }

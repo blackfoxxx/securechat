@@ -11,12 +11,14 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ChatList from "./pages/ChatList";
 import ChatRoom from "./pages/ChatRoom";
 import VideoCall from "./pages/VideoCall";
+import Profile from "./pages/Profile";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path="/chats" component={ChatList} />
+      <Route path="/profile" component={Profile} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path={"/chat/:id"} component={ChatRoom} />
       <Route path={"/call/:id"} component={VideoCall} />

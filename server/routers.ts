@@ -59,6 +59,47 @@ export const appRouter = router({
     }),
   }),
   
+  // User router
+  user: router({    
+    updateProfile: protectedProcedure
+      .input(z.object({
+        username: z.string().min(3).max(50).optional(),
+        name: z.string().optional(),
+        bio: z.string().optional(),
+        avatar: z.string().url().optional().or(z.literal("")),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { updateUserProfile } = await import("./db");
+        return updateUserProfile(ctx.user.id, input);
+      }),
+    
+    updateNotifications: protectedProcedure
+      .input(z.object({
+        messageNotifications: z.boolean(),
+        callNotifications: z.boolean(),
+        groupNotifications: z.boolean(),
+        soundEnabled: z.boolean(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { updateUserNotifications } = await import("./db");
+        return updateUserNotifications(ctx.user.id, input);
+      }),
+    
+    checkUsername: protectedProcedure
+      .input(z.object({ username: z.string() }))
+      .query(async ({ input }) => {
+        const { checkUsernameAvailable } = await import("./db");
+        return checkUsernameAvailable(input.username);
+      }),
+    
+    searchByUsername: protectedProcedure
+      .input(z.object({ username: z.string() }))
+      .query(async ({ input }) => {
+        const { searchUserByUsername } = await import("./db");
+        return searchUserByUsername(input.username);
+      }),
+  }),
+  
   // Admin router
   admin: router({
     listUsers: protectedProcedure.query(async ({ ctx }) => {
