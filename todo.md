@@ -542,3 +542,14 @@
 - [x] Create ReadReceipts component for message footer
 - [x] Show read receipt details on hover/click
 - [x] Update message read status in real-time via Socket.IO
+
+
+## Bug Fixes: User Search and Direct Chat
+
+- [x] Debug user search endpoint - check if it's returning results
+- [x] Fix auto-complete dropdown not showing results
+- [x] Fix user selection from auto-complete
+- [x] Debug createOrGetConversation endpoint
+- [x] Fix direct chat creation without adding to contacts
+- [x] Test search with different usernames
+- [x] Verify conversation navigation after creation

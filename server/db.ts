@@ -35,7 +35,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
     const updateSet: Record<string, unknown> = {};
 
-    const textFields = ["name", "email", "loginMethod"] as const;
+    const textFields = ["name", "email", "loginMethod", "username"] as const;
     type TextField = (typeof textFields)[number];
 
     const assignNullable = (field: TextField) => {
@@ -47,6 +47,28 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
 
     textFields.forEach(assignNullable);
+    
+    // Auto-generate username if not provided
+    if (!values.username && !user.username) {
+      let generatedUsername = '';
+      if (user.name) {
+        // Generate from name: "John Doe" -> "johndoe"
+        generatedUsername = user.name.toLowerCase().replace(/\s+/g, '');
+      } else if (user.email) {
+        // Generate from email: "john@example.com" -> "john"
+        generatedUsername = user.email.split('@')[0].toLowerCase();
+      } else {
+        // Fallback: use part of openId
+        generatedUsername = `user_${user.openId.substring(0, 8)}`;
+      }
+      
+      // Add random suffix to ensure uniqueness
+      const randomSuffix = Math.floor(Math.random() * 10000);
+      generatedUsername = `${generatedUsername}${randomSuffix}`;
+      
+      values.username = generatedUsername;
+      updateSet.username = generatedUsername;
+    }
 
     if (user.lastSignedIn !== undefined) {
       values.lastSignedIn = user.lastSignedIn;

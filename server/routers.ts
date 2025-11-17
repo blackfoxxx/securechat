@@ -462,11 +462,14 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         const { getDb } = await import("./db");
         const { users } = await import("../drizzle/schema");
-        const { or, like, ne } = await import("drizzle-orm");
+        const { or, like, ne, and, isNotNull, sql } = await import("drizzle-orm");
         const db = await getDb();
         if (!db) return [];
         
+        const searchPattern = `%${input.query}%`;
+        
         // Search by username or name, exclude current user
+        // Use COALESCE to handle NULL values in search
         const results = await db
           .select({
             id: users.id,
@@ -477,15 +480,17 @@ export const appRouter = router({
           })
           .from(users)
           .where(
-            or(
-              like(users.username, `%${input.query}%`),
-              like(users.name, `%${input.query}%`)
+            and(
+              ne(users.id, ctx.user.id),
+              or(
+                sql`LOWER(COALESCE(${users.username}, '')) LIKE LOWER(${searchPattern})`,
+                sql`LOWER(COALESCE(${users.name}, '')) LIKE LOWER(${searchPattern})`
+              )
             )
           )
           .limit(input.limit);
         
-        // Filter out current user from results
-        return results.filter(u => u.id !== ctx.user.id);
+        return results;
       }),
     
     getPublicKeys: protectedProcedure

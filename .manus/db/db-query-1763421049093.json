@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE users SET username = CASE \n  WHEN id = 1 THEN 'ahmedjassim1234'\n  WHEN id = 2 THEN 'testuser5678'\n  WHEN id = 3 THEN 'demouser9012'\n  ELSE CONCAT('user', id, FLOOR(RAND() * 1000))\nEND WHERE username IS NULL OR username = ''",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2JMyMgHUwTk4TtY.root --database 6TmtRBHRgpWaugmVgmBuRr --execute UPDATE users SET username = CASE \n  WHEN id = 1 THEN 'ahmedjassim1234'\n  WHEN id = 2 THEN 'testuser5678'\n  WHEN id = 3 THEN 'demouser9012'\n  ELSE CONCAT('user', id, FLOOR(RAND() * 1000))\nEND WHERE username IS NULL OR username = ''",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 50
+}
