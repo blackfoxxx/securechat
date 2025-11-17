@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { Users, UserPlus, Bell, Activity, HardDrive, Clock, Send, LogOut, Edit2, Check, X } from "lucide-react";
@@ -28,6 +29,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { SendNotificationDialog } from "@/components/SendNotificationDialog";
+import AuditTrailTab from "@/components/AuditTrailTab";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -39,6 +41,13 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<{ id: number; name: string } | null>(null);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [editingUsername, setEditingUsername] = useState("");
+  const [activeTab, setActiveTab] = useState("users");
+  const [activityFilters, setActivityFilters] = useState({
+    userId: undefined as number | undefined,
+    activityType: undefined as string | undefined,
+    startDate: undefined as string | undefined,
+    endDate: undefined as string | undefined,
+  });
 
   // Check admin authentication
   const isAdminAuthenticated = sessionStorage.getItem("adminAuthenticated") === "true";
@@ -281,8 +290,15 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Users Table */}
-        <Card>
+        {/* Tabs for Users and Audit Trail */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="users">Users Management</TabsTrigger>
+            <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="users" className="space-y-4">
+            <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -423,6 +439,12 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+          
+          <TabsContent value="audit" className="space-y-4">
+            <AuditTrailTab filters={activityFilters} onFiltersChange={setActivityFilters} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Send Notification Dialog */}

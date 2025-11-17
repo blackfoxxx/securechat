@@ -120,3 +120,32 @@ export const keyVerifications = mysqlTable("key_verifications", {
 
 export type KeyVerification = typeof keyVerifications.$inferSelect;
 export type InsertKeyVerification = typeof keyVerifications.$inferInsert;
+
+// Activity logs table for audit trail
+export const activityLogs = mysqlTable("activity_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  activityType: mysqlEnum("activityType", [
+    "login",
+    "logout",
+    "register",
+    "message_sent",
+    "message_deleted",
+    "file_uploaded",
+    "contact_added",
+    "contact_blocked",
+    "contact_unblocked",
+    "group_created",
+    "group_joined",
+    "group_left",
+    "profile_updated",
+    "password_changed",
+  ]).notNull(),
+  details: text("details"), // JSON string with additional context
+  ipAddress: varchar("ipAddress", { length: 45 }), // IPv4 or IPv6
+  userAgent: text("userAgent"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type InsertActivityLog = typeof activityLogs.$inferInsert;

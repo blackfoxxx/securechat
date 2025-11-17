@@ -253,3 +253,23 @@
 - [x] Add username update API endpoint with validation
 - [x] Ensure username uniqueness validation
 - [x] Add success/error feedback for username updates
+
+
+## Audit Trail Feature
+
+- [x] Create activity_logs database table
+- [x] Define activity types enum (login, logout, message_sent, file_upload, etc.)
+- [x] Implement activity logging helper functions
+- [x] Create API endpoint to fetch activity logs with filters
+- [x] Add date range filtering for logs
+- [x] Add user filtering for logs
+- [x] Build Audit Trail tab UI in admin dashboard
+- [x] Create activity logs table component
+- [x] Add date picker for filtering
+- [x] Integrate logging into message sending
+- [x] Integrate logging into message deletion
+- [x] Add activity type badges and icons
+- [x] Implement pagination for large log datasets
+- [ ] Integrate logging into login/logout flows (requires OAuth callback modification)
+- [ ] Integrate logging into file uploads
+- [ ] Integrate logging into contact operations

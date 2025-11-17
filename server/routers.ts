@@ -116,7 +116,7 @@ export const appRouter = router({
         }
         
         const { createMessage } = await import("./db");
-        return createMessage({
+        const result = await createMessage({
           conversationId: input.conversationId,
           senderId: ctx.user.id,
           content: input.content,
@@ -129,6 +129,15 @@ export const appRouter = router({
           audioDuration: input.audioDuration,
           replyToId: input.replyToId,
         });
+        
+        // Log activity
+        const { logMessageSent } = await import("./activity-logger");
+        await logMessageSent(ctx.user.id, {
+          conversationId: input.conversationId,
+          messageType: input.type || "text",
+        });
+        
+        return result;
       }),
 
     addReaction: protectedProcedure
@@ -164,7 +173,16 @@ export const appRouter = router({
       })
       .mutation(async ({ ctx, input }) => {
         const { deleteMessage } = await import("./db");
-        return deleteMessage(input.messageId, ctx.user.id);
+        const result = await deleteMessage(input.messageId, ctx.user.id);
+        
+        // Log activity
+        const { logMessageDeleted } = await import("./activity-logger");
+        await logMessageDeleted(ctx.user.id, {
+          messageId: input.messageId,
+          conversationId: 0, // We don't have conversationId here, could be improved
+        });
+        
+        return result;
       }),
 
     createGroup: protectedProcedure
@@ -416,6 +434,79 @@ export const appRouter = router({
         }
         const { deleteUser } = await import("./db");
         return deleteUser(input.userId);
+      }),
+    
+    getActivityLogs: protectedProcedure
+      .input(z.object({
+        userId: z.number().optional(),
+        activityType: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        limit: z.number().default(100),
+        offset: z.number().default(0),
+      }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+        }
+        
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return { logs: [], total: 0 };
+        
+        const { activityLogs, users } = await import("../drizzle/schema");
+        const { eq, and, gte, lte, desc, sql } = await import("drizzle-orm");
+        
+        // Build where conditions
+        const conditions = [];
+        
+        if (input.userId) {
+          conditions.push(eq(activityLogs.userId, input.userId));
+        }
+        
+        if (input.activityType) {
+          conditions.push(eq(activityLogs.activityType, input.activityType as any));
+        }
+        
+        if (input.startDate) {
+          conditions.push(gte(activityLogs.createdAt, new Date(input.startDate)));
+        }
+        
+        if (input.endDate) {
+          conditions.push(lte(activityLogs.createdAt, new Date(input.endDate)));
+        }
+        
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        
+        // Get total count
+        const countResult = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(activityLogs)
+          .where(whereClause);
+        
+        const total = Number(countResult[0]?.count || 0);
+        
+        // Get logs with user info
+        const logs = await db
+          .select({
+            id: activityLogs.id,
+            userId: activityLogs.userId,
+            userName: users.name,
+            userEmail: users.email,
+            activityType: activityLogs.activityType,
+            details: activityLogs.details,
+            ipAddress: activityLogs.ipAddress,
+            userAgent: activityLogs.userAgent,
+            createdAt: activityLogs.createdAt,
+          })
+          .from(activityLogs)
+          .leftJoin(users, eq(activityLogs.userId, users.id))
+          .where(whereClause)
+          .orderBy(desc(activityLogs.createdAt))
+          .limit(input.limit)
+          .offset(input.offset);
+        
+        return { logs, total };
       }),
   }),
 
