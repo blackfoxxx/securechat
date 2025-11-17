@@ -1,52 +1,48 @@
 import { Button } from "@/components/ui/button";
-import { Pause, Play } from "lucide-react";
+import { Play, Pause } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-interface AudioPlayerProps {
+interface VoiceMessagePlayerProps {
   audioUrl: string;
-  duration?: number;
+  duration: number;
+  className?: string;
 }
 
-export function AudioPlayer({ audioUrl, duration }: AudioPlayerProps) {
+export function VoiceMessagePlayer({ audioUrl, duration, className }: VoiceMessagePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(duration || 0);
   const [audioLevel, setAudioLevel] = useState(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
 
-    const handleTimeUpdate = () => {
+    audio.addEventListener('timeupdate', () => {
       setCurrentTime(audio.currentTime);
-    };
+    });
 
-    const handleLoadedMetadata = () => {
-      setAudioDuration(audio.duration);
-    };
-
-    const handleEnded = () => {
+    audio.addEventListener('ended', () => {
       setIsPlaying(false);
       setCurrentTime(0);
       setAudioLevel(0);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-    };
+    });
 
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', (e) => {
+      console.error('Audio playback error:', e);
+      setIsPlaying(false);
+    });
 
     return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('ended', handleEnded);
+      audio.pause();
+      audio.remove();
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
@@ -54,7 +50,7 @@ export function AudioPlayer({ audioUrl, duration }: AudioPlayerProps) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, []);
+  }, [audioUrl]);
 
   const updateAudioLevel = () => {
     if (!analyserRef.current) return;
@@ -92,18 +88,17 @@ export function AudioPlayer({ audioUrl, duration }: AudioPlayerProps) {
   };
 
   const togglePlayPause = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    if (!audioRef.current) return;
 
     if (isPlaying) {
-      audio.pause();
+      audioRef.current.pause();
       setIsPlaying(false);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     } else {
       await setupAudioAnalyser();
-      await audio.play();
+      await audioRef.current.play();
       setIsPlaying(true);
       updateAudioLevel();
     }
@@ -115,30 +110,29 @@ export function AudioPlayer({ audioUrl, duration }: AudioPlayerProps) {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const percentage = x / rect.width;
-    const newTime = percentage * audioDuration;
+    const newTime = percentage * duration;
 
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
   };
 
   const formatTime = (seconds: number) => {
-    if (isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progress = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="flex items-center gap-2 min-w-[200px]">
-      <audio ref={audioRef} src={audioUrl} preload="metadata" />
-      
+    <div className={cn("flex items-center gap-2 min-w-[200px]", className)}>
+      {/* Play/Pause button */}
       <Button
+        type="button"
+        size="icon"
         variant="ghost"
-        size="sm"
         onClick={togglePlayPause}
-        className="h-8 w-8 p-0 rounded-full shrink-0"
+        className="shrink-0 h-8 w-8"
       >
         {isPlaying ? (
           <Pause className="h-4 w-4" />
@@ -147,8 +141,8 @@ export function AudioPlayer({ audioUrl, duration }: AudioPlayerProps) {
         )}
       </Button>
 
+      {/* Waveform/Progress bar */}
       <div className="flex-1 flex flex-col gap-1">
-        {/* Waveform visualization */}
         <div
           className="relative h-6 cursor-pointer flex items-center gap-0.5"
           onClick={handleSeek}
@@ -165,7 +159,7 @@ export function AudioPlayer({ audioUrl, duration }: AudioPlayerProps) {
                 key={i}
                 className={cn(
                   "flex-1 rounded-full transition-all duration-100",
-                  isActive ? "bg-current" : "bg-current/30"
+                  isActive ? "bg-primary" : "bg-muted-foreground/30"
                 )}
                 style={{
                   height: `${height}%`,
@@ -176,9 +170,9 @@ export function AudioPlayer({ audioUrl, duration }: AudioPlayerProps) {
         </div>
 
         {/* Time display */}
-        <div className="flex justify-between text-xs opacity-70">
+        <div className="flex justify-between text-xs text-muted-foreground">
           <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(audioDuration)}</span>
+          <span>{formatTime(duration)}</span>
         </div>
       </div>
     </div>

@@ -456,3 +456,22 @@
 - [x] Fix TypeError: Cannot read properties of undefined (reading 'id')
 - [x] Add proper null checks for user data
 - [ ] Test group creation functionality
+
+
+## Voice Message Recording Feature
+
+- [ ] Create useVoiceRecorder hook with MediaRecorder API
+- [ ] Implement hold-to-record functionality
+- [ ] Add recording timer and duration tracking
+- [ ] Record audio in WebM format
+- [ ] Create VoiceRecorder UI component
+- [ ] Add microphone button in chat input
+- [ ] Show recording UI with waveform visualization
+- [ ] Add cancel and send recording options
+- [ ] Create VoiceMessagePlayer component
+- [ ] Add play/pause controls
+- [ ] Add progress bar and duration display
+- [ ] Integrate voice recording into ChatRoom
+- [ ] Update message display for voice messages
+- [ ] Add voice message type to database
+- [ ] Test voice recording and playback
