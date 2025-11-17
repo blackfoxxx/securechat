@@ -64,9 +64,16 @@ export default function Home() {
               </Link>
             </div>
           ) : (
-            <Button size="lg" onClick={() => window.location.href = getLoginUrl()}>
-              Get Started
-            </Button>
+            <div className="flex gap-4 justify-center">
+              <Link href="/register">
+                <Button size="lg" variant="default">
+                  Create Account
+                </Button>
+              </Link>
+              <Button size="lg" variant="outline" onClick={() => window.location.href = getLoginUrl()}>
+                Sign In
+              </Button>
+            </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">

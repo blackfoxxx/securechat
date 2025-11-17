@@ -12,11 +12,15 @@ import ChatList from "./pages/ChatList";
 import ChatRoom from "./pages/ChatRoom";
 import VideoCall from "./pages/VideoCall";
 import Profile from "./pages/Profile";
+import Register from "./pages/Register";
+import SetupUsername from "./pages/SetupUsername";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path="/register" component={Register} />
+      <Route path="/setup-username" component={SetupUsername} />
       <Route path="/chats" component={ChatList} />
       <Route path="/profile" component={Profile} />
       <Route path="/admin" component={AdminDashboard} />

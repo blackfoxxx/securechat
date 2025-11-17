@@ -66,3 +66,14 @@
 - [ ] Add contacts by username functionality
 - [x] Message search in chat list
 - [x] Filter conversations by contact name or message content
+
+
+## Implementation Tasks
+
+- [x] Create username setup/onboarding page
+- [x] Real-time username availability checking
+- [x] Contact discovery modal with search
+- [x] Add contact by username functionality
+- [x] Registration page with email/password
+- [x] Backend authentication for local registration
+- [x] Password hashing with bcrypt

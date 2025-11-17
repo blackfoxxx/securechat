@@ -17,6 +17,16 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    register: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(8),
+        name: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { registerUser } = await import("./db");
+        return registerUser(input);
+      }),
   }),
 
   chat: router({
@@ -57,6 +67,12 @@ export const appRouter = router({
       const { getUserContacts } = await import("./db");
       return getUserContacts(ctx.user.id);
     }),
+    add: protectedProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const { addUserContact } = await import("./db");
+        return addUserContact(ctx.user.id, input.contactId);
+      }),
   }),
   
   // User router

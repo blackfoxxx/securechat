@@ -6,10 +6,12 @@ import { trpc } from "@/lib/trpc";
 import { MessageCircle, Search, User } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
+import AddContactModal from "@/components/AddContactModal";
 
 export default function ChatList() {
   const { user, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAddContactOpen, setIsAddContactOpen] = useState(false);
   const { data: conversations, isLoading } = trpc.chat.conversations.useQuery(undefined, {
     enabled: isAuthenticated,
   });
@@ -46,7 +48,7 @@ export default function ChatList() {
                   Profile
                 </Button>
               </Link>
-              <Button>
+              <Button onClick={() => setIsAddContactOpen(true)}>
                 <MessageCircle className="mr-2 h-4 w-4" />
                 New Chat
               </Button>
@@ -115,10 +117,12 @@ export default function ChatList() {
             <p className="text-muted-foreground mb-4">
               Start a new conversation to begin chatting
             </p>
-            <Button>Start New Chat</Button>
+            <Button onClick={() => setIsAddContactOpen(true)}>Start New Chat</Button>
           </Card>
         )}
       </div>
+      
+      <AddContactModal open={isAddContactOpen} onOpenChange={setIsAddContactOpen} />
     </div>
   );
 }

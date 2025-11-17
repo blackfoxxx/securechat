@@ -286,3 +286,63 @@ export async function searchUserByUsername(username: string) {
 
   return results;
 }
+
+
+export async function addUserContact(userId: number, contactId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if contact already exists
+  const { and } = await import("drizzle-orm");
+  const existing = await db
+    .select()
+    .from(contacts)
+    .where(and(eq(contacts.userId, userId), eq(contacts.contactUserId, contactId)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    throw new Error("Contact already added");
+  }
+
+  // Add contact
+  await db.insert(contacts).values({
+    userId,
+    contactUserId: contactId,
+  });
+
+  return { success: true };
+}
+
+
+export async function registerUser(data: { email: string; password: string; name?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if user already exists
+  const existing = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, data.email))
+    .limit(1);
+
+  if (existing.length > 0) {
+    throw new Error("Email already registered");
+  }
+
+  // Hash password
+  const bcrypt = await import("bcryptjs");
+  const passwordHash = await bcrypt.hash(data.password, 10);
+
+  // Create user with a temporary openId (email-based)
+  const openId = `local_${data.email}`;
+  
+  await db.insert(users).values({
+    openId,
+    email: data.email,
+    passwordHash,
+    name: data.name || null,
+    loginMethod: "local",
+  });
+
+  return { success: true, message: "Account created successfully" };
+}
