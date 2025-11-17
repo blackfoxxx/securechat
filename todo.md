@@ -164,3 +164,8 @@
 - [x] Backend: Add delete message endpoint
 - [x] Frontend: Implement copy to clipboard functionality
 - [x] Frontend: Handle message forwarding to multiple chats
+
+
+## Bug Fixes
+
+- [x] Fix SQL query error in getUserConversations function

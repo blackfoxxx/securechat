@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, inArray, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, conversations, conversationMembers, messages, contacts } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -94,39 +94,52 @@ export async function getUserConversations(userId: number) {
   const db = await getDb();
   if (!db) return [];
   
-  const { sql } = await import("drizzle-orm");
-  
+  // Get all conversations for the user
+  const userConvs = await db
+    .select({
+      conversationId: conversationMembers.conversationId,
+    })
+    .from(conversationMembers)
+    .where(eq(conversationMembers.userId, userId));
+
+  if (userConvs.length === 0) return [];
+
+  const convIds = userConvs.map(c => c.conversationId);
+
+  // Get conversation details with last message
   const result = await db
     .select({
       conversation: conversations,
       lastMessage: messages,
-      otherUserId: sql<number>`(
-        SELECT cm2.userId 
-        FROM conversationMembers cm2 
-        WHERE cm2.conversationId = ${conversations.id} 
-        AND cm2.userId != ${userId} 
-        LIMIT 1
-      )`,
     })
-    .from(conversationMembers)
-    .innerJoin(conversations, eq(conversationMembers.conversationId, conversations.id))
+    .from(conversations)
     .leftJoin(messages, eq(messages.conversationId, conversations.id))
-    .where(eq(conversationMembers.userId, userId))
-    .orderBy(conversations.updatedAt);
+    .where(inArray(conversations.id, convIds))
+    .orderBy(desc(conversations.updatedAt));
   
-  // Fetch other user details for each conversation
+  // Fetch other user details for direct conversations
   const enriched = await Promise.all(
     result.map(async (conv) => {
-      if (conv.otherUserId) {
-        const otherUser = await db
+      if (conv.conversation.type === 'direct') {
+        // Find the other user in this conversation
+        const members = await db
           .select()
-          .from(users)
-          .where(eq(users.id, conv.otherUserId))
-          .limit(1);
-        return {
-          ...conv,
-          otherUser: otherUser[0] || null,
-        };
+          .from(conversationMembers)
+          .where(eq(conversationMembers.conversationId, conv.conversation.id));
+        
+        const otherMember = members.find(m => m.userId !== userId);
+        
+        if (otherMember) {
+          const otherUser = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, otherMember.userId))
+            .limit(1);
+          return {
+            ...conv,
+            otherUser: otherUser[0] || null,
+          };
+        }
       }
       return { ...conv, otherUser: null };
     })
