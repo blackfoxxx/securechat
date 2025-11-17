@@ -66,6 +66,118 @@ export function setupPresence(httpServer: HTTPServer) {
       }
     });
 
+    // Handle call initiation
+    socket.on("call:initiate", ({ 
+      callerId, 
+      callerName, 
+      callerAvatar,
+      recipientId, 
+      conversationId, 
+      roomName,
+      callType 
+    }: { 
+      callerId: number; 
+      callerName: string;
+      callerAvatar?: string;
+      recipientId: number; 
+      conversationId: number; 
+      roomName: string;
+      callType: "video" | "audio";
+    }) => {
+      console.log(`Call initiated: ${callerName} (${callerId}) calling user ${recipientId}`);
+      
+      // Send call notification to recipient's sockets
+      const recipientSockets = onlineUsers.get(recipientId);
+      if (recipientSockets) {
+        recipientSockets.forEach(socketId => {
+          io.to(socketId).emit("call:incoming", {
+            callerId,
+            callerName,
+            callerAvatar,
+            conversationId,
+            roomName,
+            callType,
+          });
+        });
+      } else {
+        // Recipient is offline, notify caller
+        socket.emit("call:recipient-offline", { recipientId });
+      }
+    });
+
+    // Handle call acceptance
+    socket.on("call:accept", ({ 
+      callerId, 
+      recipientId,
+      recipientName,
+      conversationId, 
+      roomName 
+    }: { 
+      callerId: number; 
+      recipientId: number;
+      recipientName: string;
+      conversationId: number; 
+      roomName: string;
+    }) => {
+      console.log(`Call accepted: User ${recipientId} accepted call from ${callerId}`);
+      
+      // Notify caller that call was accepted
+      const callerSockets = onlineUsers.get(callerId);
+      if (callerSockets) {
+        callerSockets.forEach(socketId => {
+          io.to(socketId).emit("call:accepted", {
+            recipientId,
+            recipientName,
+            conversationId,
+            roomName,
+          });
+        });
+      }
+    });
+
+    // Handle call decline
+    socket.on("call:decline", ({ 
+      callerId, 
+      recipientId,
+      recipientName 
+    }: { 
+      callerId: number; 
+      recipientId: number;
+      recipientName: string;
+    }) => {
+      console.log(`Call declined: User ${recipientId} declined call from ${callerId}`);
+      
+      // Notify caller that call was declined
+      const callerSockets = onlineUsers.get(callerId);
+      if (callerSockets) {
+        callerSockets.forEach(socketId => {
+          io.to(socketId).emit("call:declined", {
+            recipientId,
+            recipientName,
+          });
+        });
+      }
+    });
+
+    // Handle call cancellation
+    socket.on("call:cancel", ({ 
+      callerId,
+      recipientId 
+    }: { 
+      callerId: number;
+      recipientId: number;
+    }) => {
+      console.log(`Call cancelled: User ${callerId} cancelled call to ${recipientId}`);
+      
+      // Notify recipient that call was cancelled
+      const recipientSockets = onlineUsers.get(recipientId);
+      if (recipientSockets) {
+        recipientSockets.forEach(socketId => {
+          io.to(socketId).emit("call:cancelled", { callerId });
+        });
+      }
+    });
+
     // Handle disconnect
     socket.on("disconnect", () => {
       console.log(`Socket disconnected: ${socket.id}`);

@@ -347,9 +347,55 @@ export default function ChatRoom() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
+                  if (!socket || !connected) {
+                    toast.error("Not connected to server");
+                    return;
+                  }
+                  if (!otherUser) {
+                    toast.error("Recipient not found");
+                    return;
+                  }
+
                   const roomName = `chat-${conversationId}-${Date.now()}`;
-                  const displayName = user?.name || user?.username || 'User';
-                  setLocation(`/call/${conversationId}?room=${roomName}&name=${displayName}`);
+                  
+                  // Send call initiation request via Socket.IO
+                  socket.emit("call:initiate", {
+                    callerId: user?.id,
+                    callerName: user?.name || user?.username || "User",
+                    callerAvatar: user?.avatar,
+                    recipientId: otherUser.id,
+                    conversationId,
+                    roomName,
+                    callType: "video",
+                  });
+
+                  // Show toast that call is being initiated
+                  toast.info(`Calling ${otherUser.name}...`);
+
+                  // Listen for call acceptance
+                  socket.once("call:accepted", ({ roomName: acceptedRoomName }) => {
+                    toast.success("Call accepted!");
+                    const displayName = user?.name || user?.username || 'User';
+                    setLocation(`/call/${conversationId}?room=${acceptedRoomName}&name=${displayName}`);
+                  });
+
+                  // Listen for call decline
+                  socket.once("call:declined", ({ recipientName }) => {
+                    toast.error(`${recipientName} declined the call`);
+                  });
+
+                  // Listen for recipient offline
+                  socket.once("call:recipient-offline", () => {
+                    toast.error(`${otherUser.name} is offline`);
+                  });
+
+                  // Set timeout to cancel call after 30 seconds
+                  setTimeout(() => {
+                    socket.emit("call:cancel", {
+                      callerId: user?.id,
+                      recipientId: otherUser.id,
+                    });
+                  }, 30000);
                 }}
                 className="text-sm"
               >

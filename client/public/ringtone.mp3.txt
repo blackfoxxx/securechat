@@ -1,0 +1,11 @@
+# Ringtone Audio File
+# 
+# For a production deployment, replace this placeholder with an actual MP3 ringtone file.
+# You can:
+# 1. Use a free ringtone from https://freesound.org/ or https://zapsplat.com/
+# 2. Generate one using online tools like https://www.beepbox.co/
+# 3. Record your own ringtone
+#
+# Place the MP3 file at: client/public/ringtone.mp3
+#
+# For now, the IncomingCallModal will work without audio (browser will show a warning in console)

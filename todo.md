@@ -357,3 +357,23 @@
 - [x] Add History button in chat header
 - [x] Display call history in dialog
 - [ ] Implement call history filtering
+
+
+## Call Notification System
+
+- [x] Add Socket.IO call events (call:initiate, call:accept, call:decline, call:cancel)
+- [x] Create IncomingCallModal component
+- [x] Add caller information display (name, avatar)
+- [x] Add accept/decline buttons
+- [x] Add ringtone audio for incoming calls
+- [x] Implement call timeout (30 seconds)
+- [x] Add call notification state to SocketContext
+- [x] Update ChatRoom to send call request via Socket.IO
+- [x] Handle call acceptance and navigation
+- [x] Handle call decline notification
+- [x] Handle recipient offline notification
+- [x] Add call cancellation after timeout
+- [x] Create ringtone setup guide
+- [ ] Add actual ringtone.mp3 file
+- [ ] Prevent duplicate simultaneous calls
+- [ ] Add call busy state handling

@@ -2,16 +2,29 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/_core/hooks/useAuth";
 
+interface IncomingCall {
+  callerId: number;
+  callerName: string;
+  callerAvatar?: string;
+  conversationId: number;
+  roomName: string;
+  callType: "video" | "audio";
+}
+
 interface SocketContextValue {
   socket: Socket | null;
   connected: boolean;
   onlineUsers: Set<number>;
+  incomingCall: IncomingCall | null;
+  clearIncomingCall: () => void;
 }
 
 const SocketContext = createContext<SocketContextValue>({
   socket: null,
   connected: false,
   onlineUsers: new Set(),
+  incomingCall: null,
+  clearIncomingCall: () => {},
 });
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
@@ -19,6 +32,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
+  const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
+
+  const clearIncomingCall = () => {
+    setIncomingCall(null);
+  };
 
   useEffect(() => {
     // Connect to the same origin (backend server)
@@ -61,6 +79,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       });
     });
 
+    // Listen for incoming call
+    newSocket.on("call:incoming", (data: IncomingCall) => {
+      console.log("Incoming call from:", data.callerName);
+      setIncomingCall(data);
+    });
+
+    // Listen for call cancelled
+    newSocket.on("call:cancelled", () => {
+      console.log("Call was cancelled by caller");
+      setIncomingCall(null);
+    });
+
     setSocket(newSocket);
 
     return () => {
@@ -72,7 +102,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, user?.id]);
 
   return (
-    <SocketContext.Provider value={{ socket, connected, onlineUsers }}>
+    <SocketContext.Provider value={{ socket, connected, onlineUsers, incomingCall, clearIncomingCall }}>
       {children}
     </SocketContext.Provider>
   );
