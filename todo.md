@@ -448,3 +448,11 @@
 - [ ] Add 2FA verification during login
 - [ ] Test password change functionality
 - [ ] Test 2FA setup and verification
+
+
+## Bug Fix: CreateGroupDialog Error
+
+- [x] Investigate CreateGroupDialog component error
+- [x] Fix TypeError: Cannot read properties of undefined (reading 'id')
+- [x] Add proper null checks for user data
+- [ ] Test group creation functionality

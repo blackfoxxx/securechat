@@ -92,21 +92,26 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
             <Label>Select Members</Label>
             <div className="max-h-[200px] overflow-y-auto space-y-2 border rounded-md p-3">
               {contacts && contacts.length > 0 ? (
-                contacts.map((contact: any) => (
-                  <div key={contact.contactUser.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`contact-${contact.contactUser.id}`}
-                      checked={selectedMembers.includes(contact.contactUser.id)}
-                      onCheckedChange={() => toggleMember(contact.contactUser.id)}
-                    />
-                    <label
-                      htmlFor={`contact-${contact.contactUser.id}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                    >
-                      {contact.contactUser.name || contact.contactUser.username || "Unknown"}
-                    </label>
-                  </div>
-                ))
+                contacts.map((contact: any) => {
+                  // Add null check for contactUser
+                  if (!contact?.contactUser?.id) return null;
+                  
+                  return (
+                    <div key={contact.contactUser.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`contact-${contact.contactUser.id}`}
+                        checked={selectedMembers.includes(contact.contactUser.id)}
+                        onCheckedChange={() => toggleMember(contact.contactUser.id)}
+                      />
+                      <label
+                        htmlFor={`contact-${contact.contactUser.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {contact.contactUser.name || contact.contactUser.username || "Unknown"}
+                      </label>
+                    </div>
+                  );
+                })
               ) : (
                 <p className="text-sm text-muted-foreground">No contacts available</p>
               )}
