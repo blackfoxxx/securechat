@@ -149,3 +149,31 @@ export const activityLogs = mysqlTable("activity_logs", {
 
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type InsertActivityLog = typeof activityLogs.$inferInsert;
+// Call history table for tracking video/audio calls
+export const callHistory = mysqlTable("call_history", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversationId").notNull(),
+  callType: mysqlEnum("callType", ["video", "audio"]).notNull().default("video"),
+  initiatedBy: int("initiatedBy").notNull(), // User ID who started the call
+  startedAt: timestamp("startedAt").notNull().defaultNow(),
+  endedAt: timestamp("endedAt"),
+  duration: int("duration"), // Duration in seconds, calculated when call ends
+  roomName: varchar("roomName", { length: 255 }).notNull(), // Jitsi room name
+  status: mysqlEnum("status", ["ongoing", "completed", "missed", "failed"]).notNull().default("ongoing"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Call participants junction table
+export const callParticipants = mysqlTable("call_participants", {
+  id: int("id").autoincrement().primaryKey(),
+  callId: int("callId").notNull(),
+  userId: int("userId").notNull(),
+  joinedAt: timestamp("joinedAt").notNull().defaultNow(),
+  leftAt: timestamp("leftAt"),
+  duration: int("duration"), // Individual participant duration in seconds
+});
+
+export type CallHistory = typeof callHistory.$inferSelect;
+export type InsertCallHistory = typeof callHistory.$inferInsert;
+export type CallParticipant = typeof callParticipants.$inferSelect;
+export type InsertCallParticipant = typeof callParticipants.$inferInsert;

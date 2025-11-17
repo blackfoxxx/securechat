@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -16,6 +16,13 @@ import { ForwardMessageDialog } from "@/components/ForwardMessageDialog";
 import { MessageReply } from "@/components/MessageReply";
 import { useE2EE } from "@/contexts/E2EEContext";
 import KeyVerificationDialog from "@/components/KeyVerificationDialog";
+import { CallHistory } from "@/components/CallHistory";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   generateSymmetricKey,
   encryptMessage,
@@ -42,6 +49,7 @@ export default function ChatRoom() {
   const [messageToForward, setMessageToForward] = useState<{ id: number; content: string } | null>(null);
   const [replyTo, setReplyTo] = useState<{ id: number; content: string; senderName: string } | null>(null);
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
+  const [callHistoryDialogOpen, setCallHistoryDialogOpen] = useState(false);
   const [otherUser, setOtherUser] = useState<{ id: number; name: string; avatar?: string; publicKey?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -351,6 +359,15 @@ export default function ChatRoom() {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() => setCallHistoryDialogOpen(true)}
+                className="text-sm"
+              >
+                <History className="h-4 w-4 mr-2" />
+                History
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setVerificationDialogOpen(true)}
                 className="text-sm"
               >
@@ -620,6 +637,16 @@ export default function ChatRoom() {
           contactPublicKey={otherUser.publicKey}
         />
       )}
+
+      {/* Call History Dialog */}
+      <Dialog open={callHistoryDialogOpen} onOpenChange={setCallHistoryDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Call History</DialogTitle>
+          </DialogHeader>
+          <CallHistory conversationId={conversationId} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

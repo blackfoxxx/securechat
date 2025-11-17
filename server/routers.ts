@@ -685,6 +685,210 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // Call history router
+  calls: router({  
+    // Start a new call session
+    startCall: protectedProcedure
+      .input(z.object({
+        conversationId: z.number(),
+        roomName: z.string(),
+        callType: z.enum(["video", "audio"]).default("video"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const { callHistory, callParticipants } = await import("../drizzle/schema");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        // Create call record
+        const [call] = await db.insert(callHistory).values({
+          conversationId: input.conversationId,
+          callType: input.callType,
+          initiatedBy: ctx.user.id,
+          roomName: input.roomName,
+          status: "ongoing",
+        }).$returningId();
+
+        // Add initiator as first participant
+        await db.insert(callParticipants).values({
+          callId: call.id,
+          userId: ctx.user.id,
+        });
+
+        return { callId: call.id, roomName: input.roomName };
+      }),
+
+    // End a call session
+    endCall: protectedProcedure
+      .input(z.object({
+        callId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const { callHistory, callParticipants } = await import("../drizzle/schema");
+        const { eq, and, isNull } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        const now = new Date();
+
+        // Get call start time
+        const [call] = await db.select().from(callHistory).where(eq(callHistory.id, input.callId));
+        if (!call) throw new TRPCError({ code: "NOT_FOUND", message: "Call not found" });
+
+        const duration = Math.floor((now.getTime() - call.startedAt.getTime()) / 1000);
+
+        // Update call record
+        await db.update(callHistory)
+          .set({
+            endedAt: now,
+            duration: duration,
+            status: "completed",
+          })
+          .where(eq(callHistory.id, input.callId));
+
+        // Update all participants who haven't left yet
+        const ongoingParticipants = await db.select()
+          .from(callParticipants)
+          .where(and(
+            eq(callParticipants.callId, input.callId),
+            isNull(callParticipants.leftAt)
+          ));
+
+        for (const participant of ongoingParticipants) {
+          const participantDuration = Math.floor((now.getTime() - participant.joinedAt.getTime()) / 1000);
+          await db.update(callParticipants)
+            .set({
+              leftAt: now,
+              duration: participantDuration,
+            })
+            .where(eq(callParticipants.id, participant.id));
+        }
+
+        return { success: true, duration };
+      }),
+
+    // Join an ongoing call
+    joinCall: protectedProcedure
+      .input(z.object({
+        callId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const { callParticipants } = await import("../drizzle/schema");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        await db.insert(callParticipants).values({
+          callId: input.callId,
+          userId: ctx.user.id,
+        });
+
+        return { success: true };
+      }),
+
+    // Leave a call
+    leaveCall: protectedProcedure
+      .input(z.object({
+        callId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const { callParticipants } = await import("../drizzle/schema");
+        const { eq, and, isNull } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        const now = new Date();
+
+        // Find participant record
+        const [participant] = await db.select()
+          .from(callParticipants)
+          .where(and(
+            eq(callParticipants.callId, input.callId),
+            eq(callParticipants.userId, ctx.user.id),
+            isNull(callParticipants.leftAt)
+          ));
+
+        if (participant) {
+          const duration = Math.floor((now.getTime() - participant.joinedAt.getTime()) / 1000);
+          await db.update(callParticipants)
+            .set({
+              leftAt: now,
+              duration: duration,
+            })
+            .where(eq(callParticipants.id, participant.id));
+        }
+
+        return { success: true };
+      }),
+
+    // Get call history for a conversation
+    getHistory: protectedProcedure
+      .input(z.object({
+        conversationId: z.number(),
+      }))
+      .query(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const { callHistory, callParticipants, users } = await import("../drizzle/schema");
+        const { eq, desc } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        // Get all calls for this conversation
+        const calls = await db.select()
+          .from(callHistory)
+          .where(eq(callHistory.conversationId, input.conversationId))
+          .orderBy(desc(callHistory.startedAt));
+
+        // Get participants for each call
+        const callsWithParticipants = await Promise.all(
+          calls.map(async (call) => {
+            const participants = await db.select({
+              userId: callParticipants.userId,
+              userName: users.name,
+              joinedAt: callParticipants.joinedAt,
+              leftAt: callParticipants.leftAt,
+              duration: callParticipants.duration,
+            })
+            .from(callParticipants)
+            .leftJoin(users, eq(callParticipants.userId, users.id))
+            .where(eq(callParticipants.callId, call.id));
+
+            return {
+              ...call,
+              participants,
+            };
+          })
+        );
+
+        return callsWithParticipants;
+      }),
+
+    // Get call statistics
+    getStatistics: protectedProcedure
+      .input(z.object({
+        conversationId: z.number(),
+      }))
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const { callHistory } = await import("../drizzle/schema");
+        const { eq, sql } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        const [stats] = await db.select({
+          totalCalls: sql<number>`COUNT(*)`,
+          totalDuration: sql<number>`SUM(COALESCE(${callHistory.duration}, 0))`,
+          avgDuration: sql<number>`AVG(COALESCE(${callHistory.duration}, 0))`,
+        })
+        .from(callHistory)
+        .where(eq(callHistory.conversationId, input.conversationId));
+
+        return stats || { totalCalls: 0, totalDuration: 0, avgDuration: 0 };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

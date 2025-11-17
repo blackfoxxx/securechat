@@ -337,3 +337,23 @@
 - [x] Document offline deployment process
 - [ ] Add call notification system
 - [ ] Test video calls on local network
+
+
+## Call History Feature
+
+- [x] Create call_history database table
+- [x] Add call participants junction table
+- [x] Create API endpoint to start call session
+- [x] Create API endpoint to end call session
+- [x] Create API endpoint to get call history
+- [x] Add call logging to VideoCall component
+- [x] Track call start time automatically
+- [x] Track call end time and calculate duration
+- [x] Create CallHistory UI component
+- [x] Display call history in chat rooms
+- [x] Show call duration in human-readable format
+- [x] Add call statistics (total calls, average duration)
+- [x] Add call type indicator (video/audio)
+- [x] Add History button in chat header
+- [x] Display call history in dialog
+- [ ] Implement call history filtering

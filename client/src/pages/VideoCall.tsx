@@ -2,7 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 /**
  * VideoCall component using Jitsi Meet
@@ -32,17 +34,44 @@ declare global {
 }
 
 export default function VideoCall() {
+  const { id } = useParams<{ id: string }>();
+  const conversationId = parseInt(id || "0");
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [callId, setCallId] = useState<number | null>(null);
   const jitsiContainerRef = useRef<HTMLDivElement>(null);
   const jitsiApiRef = useRef<JitsiMeetExternalAPI | null>(null);
+
+  const startCallMutation = trpc.calls.startCall.useMutation();
+  const endCallMutation = trpc.calls.endCall.useMutation();
 
   useEffect(() => {
     // Get room name from URL
     const urlParams = new URLSearchParams(window.location.search);
     const roomName = urlParams.get("room") || `room-${Date.now()}`;
     const displayName = urlParams.get("name") || "User";
+
+    // Start call session in database
+    if (conversationId > 0) {
+      startCallMutation.mutate(
+        {
+          conversationId,
+          roomName,
+          callType: "video",
+        },
+        {
+          onSuccess: (data) => {
+            setCallId(data.callId);
+            console.log("Call session started:", data.callId);
+          },
+          onError: (err) => {
+            console.error("Failed to start call session:", err);
+            toast.error("Failed to start call session");
+          },
+        }
+      );
+    }
 
     // Load Jitsi Meet External API script
     const script = document.createElement("script");
@@ -111,11 +140,11 @@ export default function VideoCall() {
 
       api.addListener("videoConferenceLeft", () => {
         console.log("Left video conference");
-        setLocation("/chats");
+        handleEndCall();
       });
 
       api.addListener("readyToClose", () => {
-        setLocation("/chats");
+        handleEndCall();
       });
 
     } catch (err) {
@@ -126,10 +155,48 @@ export default function VideoCall() {
   };
 
   const handleEndCall = () => {
-    if (jitsiApiRef.current) {
-      jitsiApiRef.current.executeCommand("hangup");
+    // End call session in database
+    if (callId) {
+      endCallMutation.mutate(
+        { callId },
+        {
+          onSuccess: (data) => {
+            console.log("Call ended. Duration:", data.duration, "seconds");
+            toast.success(`Call ended. Duration: ${formatDuration(data.duration)}`);
+          },
+          onError: (err) => {
+            console.error("Failed to end call session:", err);
+          },
+          onSettled: () => {
+            // Always navigate back regardless of success/failure
+            if (jitsiApiRef.current) {
+              jitsiApiRef.current.executeCommand("hangup");
+            }
+            setLocation("/chats");
+          },
+        }
+      );
+    } else {
+      // No call ID, just navigate back
+      if (jitsiApiRef.current) {
+        jitsiApiRef.current.executeCommand("hangup");
+      }
+      setLocation("/chats");
     }
-    setLocation("/chats");
+  };
+
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
   };
 
   if (error) {
