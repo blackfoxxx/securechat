@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
-import { Users, UserPlus, Bell, Activity, HardDrive, Clock, Send } from "lucide-react";
+import { Users, UserPlus, Bell, Activity, HardDrive, Clock, Send, LogOut, Edit2, Check, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -37,6 +37,8 @@ export default function AdminDashboard() {
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "" });
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: number; name: string } | null>(null);
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editingUsername, setEditingUsername] = useState("");
 
   // Check admin authentication
   const isAdminAuthenticated = sessionStorage.getItem("adminAuthenticated") === "true";
@@ -79,6 +81,18 @@ export default function AdminDashboard() {
     },
     onError: (error) => {
       toast.error(error.message);
+    },
+  });
+  
+  const updateUsernameMutation = trpc.admin.updateUsername.useMutation({
+    onSuccess: () => {
+      toast.success("Username updated successfully");
+      setEditingUserId(null);
+      setEditingUsername("");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update username");
     },
   });
 
@@ -144,6 +158,17 @@ export default function AdminDashboard() {
             >
               <Send className="mr-2 h-4 w-4" />
               Broadcast
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                sessionStorage.removeItem("adminAuthenticated");
+                setLocation("/admin/login");
+                toast.success("Logged out successfully");
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
             </Button>
             <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
               <DialogTrigger asChild>
@@ -286,6 +311,7 @@ export default function AdminDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Username</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Last Active</TableHead>
@@ -299,6 +325,62 @@ export default function AdminDashboard() {
                   {filteredUsers?.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name || "N/A"}</TableCell>
+                      <TableCell>
+                        {editingUserId === user.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={editingUsername}
+                              onChange={(e) => setEditingUsername(e.target.value)}
+                              className="h-8 w-32"
+                              placeholder="Username"
+                            />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={() => {
+                                // Save username
+                                if (editingUsername.trim().length >= 3) {
+                                  updateUsernameMutation.mutate({
+                                    userId: user.id,
+                                    username: editingUsername.trim(),
+                                  });
+                                } else {
+                                  toast.error("Username must be at least 3 characters");
+                                }
+                              }}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={() => {
+                                setEditingUserId(null);
+                                setEditingUsername("");
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span>{user.username || "Not set"}</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={() => {
+                                setEditingUserId(user.id);
+                                setEditingUsername(user.username || "");
+                              }}
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>{user.email || "N/A"}</TableCell>
                       <TableCell>
                         <Badge variant={user.isOnline ? "default" : "secondary"}>

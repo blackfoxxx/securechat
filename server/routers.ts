@@ -357,6 +357,46 @@ export const appRouter = router({
       return getDashboardStats();
     }),
     
+    updateUsername: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        username: z.string().min(3).max(50),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+        }
+        
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        // Check if username is already taken
+        const existing = await db
+          .select()
+          .from(users)
+          .where(eq(users.username, input.username))
+          .limit(1);
+        
+        if (existing.length > 0 && existing[0].id !== input.userId) {
+          throw new TRPCError({ 
+            code: "CONFLICT", 
+            message: "Username already taken" 
+          });
+        }
+        
+        // Update username
+        await db
+          .update(users)
+          .set({ username: input.username })
+          .where(eq(users.id, input.userId));
+        
+        return { success: true };
+      }),
+    
     addUser: protectedProcedure
       .input(z.object({
         name: z.string(),

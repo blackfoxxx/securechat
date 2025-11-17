@@ -243,3 +243,13 @@
 - [x] Show alerts when contact keys change
 - [x] Add numeric security code display
 - [ ] Implement QR code scanning (optional)
+
+
+## Admin Dashboard Improvements
+
+- [x] Add logout button to admin dashboard header
+- [x] Add username column to user management table
+- [x] Implement inline username editing in user management
+- [x] Add username update API endpoint with validation
+- [x] Ensure username uniqueness validation
+- [x] Add success/error feedback for username updates
