@@ -430,6 +430,130 @@ export const appRouter = router({
       return blocked;
     }),
   }),
+  
+  // Key Verification router
+  keyVerification: router({
+    getStatus: protectedProcedure
+      .input(z.object({ contactId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return { isVerified: false, keyChanged: false };
+        
+        const { keyVerifications, users } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        
+        // Get verification record
+        const verification = await db
+          .select()
+          .from(keyVerifications)
+          .where(
+            and(
+              eq(keyVerifications.userId, ctx.user.id),
+              eq(keyVerifications.contactUserId, input.contactId)
+            )
+          )
+          .limit(1);
+        
+        if (verification.length === 0) {
+          return { isVerified: false, keyChanged: false };
+        }
+        
+        // Check if contact's key has changed
+        const contact = await db
+          .select({ publicKey: users.publicKey })
+          .from(users)
+          .where(eq(users.id, input.contactId))
+          .limit(1);
+        
+        if (contact.length === 0) {
+          return { isVerified: false, keyChanged: false };
+        }
+        
+        // Generate current fingerprint and compare
+        const { generateKeyFingerprint, importPublicKey } = await import("../client/src/lib/crypto");
+        const currentKey = await importPublicKey(contact[0].publicKey!);
+        const currentFingerprint = await generateKeyFingerprint(currentKey);
+        
+        const keyChanged = currentFingerprint !== verification[0].verifiedKeyFingerprint;
+        
+        return {
+          isVerified: verification[0].isVerified === 1 && !keyChanged,
+          keyChanged,
+        };
+      }),
+    
+    verify: protectedProcedure
+      .input(z.object({
+        contactId: z.number(),
+        keyFingerprint: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { keyVerifications } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        
+        // Check if verification already exists
+        const existing = await db
+          .select()
+          .from(keyVerifications)
+          .where(
+            and(
+              eq(keyVerifications.userId, ctx.user.id),
+              eq(keyVerifications.contactUserId, input.contactId)
+            )
+          )
+          .limit(1);
+        
+        if (existing.length > 0) {
+          // Update existing verification
+          await db
+            .update(keyVerifications)
+            .set({
+              verifiedKeyFingerprint: input.keyFingerprint,
+              isVerified: 1,
+              verifiedAt: new Date(),
+            })
+            .where(eq(keyVerifications.id, existing[0].id));
+        } else {
+          // Create new verification
+          await db.insert(keyVerifications).values({
+            userId: ctx.user.id,
+            contactUserId: input.contactId,
+            verifiedKeyFingerprint: input.keyFingerprint,
+            isVerified: 1,
+          });
+        }
+        
+        return { success: true };
+      }),
+    
+    unverify: protectedProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { keyVerifications } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        
+        // Delete verification record
+        await db
+          .delete(keyVerifications)
+          .where(
+            and(
+              eq(keyVerifications.userId, ctx.user.id),
+              eq(keyVerifications.contactUserId, input.contactId)
+            )
+          );
+        
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

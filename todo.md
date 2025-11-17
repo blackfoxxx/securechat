@@ -229,3 +229,17 @@
 - [ ] Complete E2EE message decryption flow in ChatRoom
 - [ ] Handle key rotation and rekeying
 - [ ] Add E2EE unlock dialog for entering password
+
+
+## Key Verification Feature (Security Codes)
+
+- [x] Add key verification table to database schema
+- [x] Create security code generation utility
+- [x] Generate QR codes from key fingerprints
+- [x] Build KeyVerificationDialog component
+- [x] Add verification button in chat/contact UI
+- [x] Display verification status indicators
+- [x] Track verified contacts in database
+- [x] Show alerts when contact keys change
+- [x] Add numeric security code display
+- [ ] Implement QR code scanning (optional)

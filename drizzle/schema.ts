@@ -107,3 +107,16 @@ export const blockedUsers = mysqlTable("blocked_users", {
 
 export type BlockedUser = typeof blockedUsers.$inferSelect;
 export type InsertBlockedUser = typeof blockedUsers.$inferInsert;
+
+export const keyVerifications = mysqlTable("key_verifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // User who verified
+  contactUserId: int("contactUserId").notNull(), // Contact being verified
+  verifiedKeyFingerprint: varchar("verifiedKeyFingerprint", { length: 64 }).notNull(), // Fingerprint at time of verification
+  isVerified: int("isVerified").default(1).notNull(), // 1 if verified, 0 if key changed
+  verifiedAt: timestamp("verifiedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KeyVerification = typeof keyVerifications.$inferSelect;
+export type InsertKeyVerification = typeof keyVerifications.$inferInsert;

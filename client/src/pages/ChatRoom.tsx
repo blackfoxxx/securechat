@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "wouter";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { ForwardMessageDialog } from "@/components/ForwardMessageDialog";
 import { MessageReply } from "@/components/MessageReply";
 import { useE2EE } from "@/contexts/E2EEContext";
+import KeyVerificationDialog from "@/components/KeyVerificationDialog";
 import {
   generateSymmetricKey,
   encryptMessage,
@@ -39,6 +40,8 @@ export default function ChatRoom() {
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
   const [messageToForward, setMessageToForward] = useState<{ id: number; content: string } | null>(null);
   const [replyTo, setReplyTo] = useState<{ id: number; content: string; senderName: string } | null>(null);
+  const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
+  const [otherUser, setOtherUser] = useState<{ id: number; name: string; avatar?: string; publicKey?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
@@ -48,6 +51,24 @@ export default function ChatRoom() {
     { conversationId },
     { enabled: isAuthenticated && conversationId > 0 }
   );
+  
+  const { data: conversations } = trpc.chat.conversations.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  
+  // Get current conversation details
+  const currentConversation = conversations?.find(c => c.conversation.id === conversationId);
+  
+  useEffect(() => {
+    if (currentConversation && 'otherUser' in currentConversation && currentConversation.otherUser) {
+      setOtherUser({
+        id: currentConversation.otherUser.id,
+        name: currentConversation.otherUser.name || 'Unknown',
+        avatar: currentConversation.otherUser.avatar || undefined,
+        publicKey: currentConversation.otherUser.publicKey || undefined,
+      });
+    }
+  }, [currentConversation]);
 
   const sendMessageMutation = trpc.chat.sendMessage.useMutation({
     onSuccess: () => {
@@ -302,8 +323,25 @@ export default function ChatRoom() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <div className="border-b p-4">
-        <h2 className="text-xl font-semibold">Chat Room</h2>
+      <div className="border-b p-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">
+            {currentConversation && 'otherUser' in currentConversation && currentConversation.otherUser
+              ? currentConversation.otherUser.name || 'Unknown'
+              : 'Chat Room'}
+          </h2>
+        </div>
+        {otherUser && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setVerificationDialogOpen(true)}
+            className="text-sm"
+          >
+            <Shield className="h-4 w-4 mr-2" />
+            Verify
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -550,6 +588,18 @@ export default function ChatRoom() {
           onOpenChange={setForwardDialogOpen}
           messageContent={messageToForward.content}
           messageId={messageToForward.id}
+        />
+      )}
+      
+      {/* Key Verification Dialog */}
+      {otherUser && (
+        <KeyVerificationDialog
+          open={verificationDialogOpen}
+          onOpenChange={setVerificationDialogOpen}
+          contactId={otherUser.id}
+          contactName={otherUser.name}
+          contactAvatar={otherUser.avatar}
+          contactPublicKey={otherUser.publicKey}
         />
       )}
     </div>
