@@ -2,6 +2,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -55,6 +57,46 @@ export const appRouter = router({
       const { getUserContacts } = await import("./db");
       return getUserContacts(ctx.user.id);
     }),
+  }),
+  
+  // Admin router
+  admin: router({
+    listUsers: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+      const { getAllUsers } = await import("./db");
+      return getAllUsers();
+    }),
+    
+    getDashboardStats: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+      const { getDashboardStats } = await import("./db");
+      return getDashboardStats();
+    }),
+    
+    addUser: protectedProcedure
+      .input(z.object({
+        name: z.string(),
+        email: z.string().email(),
+        password: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const { createUser } = await import("./db");
+        return createUser(input);
+      }),
+    
+    deleteUser: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+        }
+        const { deleteUser } = await import("./db");
+        return deleteUser(input.userId);
+      }),
   }),
 });
 

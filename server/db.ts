@@ -147,3 +147,65 @@ export async function getUserContacts(userId: number) {
     .innerJoin(users, eq(contacts.contactUserId, users.id))
     .where(eq(contacts.userId, userId));
 }
+
+
+// Admin functions
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const allUsers = await db.select().from(users);
+  return allUsers.map(user => ({
+    ...user,
+    isOnline: false, // TODO: implement real-time online status
+    messageCount: 0, // TODO: implement message counting
+    storageUsed: 0, // TODO: implement storage calculation
+  }));
+}
+
+export async function getDashboardStats() {
+  const db = await getDb();
+  if (!db) return {
+    totalUsers: 0,
+    activeUsers: 0,
+    totalMessages: 0,
+    messagesToday: 0,
+    totalStorage: 0,
+    avgResponseTime: "N/A",
+  };
+  
+  const allUsers = await db.select().from(users);
+  
+  return {
+    totalUsers: allUsers.length,
+    activeUsers: 0, // TODO: implement active users count
+    totalMessages: 0, // TODO: implement message counting
+    messagesToday: 0, // TODO: implement today's messages
+    totalStorage: 0, // TODO: implement storage calculation
+    avgResponseTime: "N/A", // TODO: implement response time tracking
+  };
+}
+
+export async function createUser(data: { name: string; email: string; password: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // TODO: Hash password before storing
+  // For now, this is a placeholder - implement proper password hashing
+  await db.insert(users).values({
+    name: data.name,
+    email: data.email,
+    openId: `local_${Date.now()}`, // Generate unique ID
+    loginMethod: "local",
+  });
+  
+  return { success: true };
+}
+
+export async function deleteUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(users).where(eq(users.id, userId));
+  return { success: true };
+}

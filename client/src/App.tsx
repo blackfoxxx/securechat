@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import Home from "./pages/Home";
+import AdminDashboard from "./pages/AdminDashboard";
 import ChatList from "./pages/ChatList";
 import ChatRoom from "./pages/ChatRoom";
 import VideoCall from "./pages/VideoCall";
@@ -14,8 +15,9 @@ import VideoCall from "./pages/VideoCall";
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/chats"} component={ChatList} />
+        <Route path={"/"} component={Home} />
+      <Route path="/admin"  component={AdminDashboard} />
+      <Route path={"/404"} component={NotFound} />
       <Route path={"/chat/:id"} component={ChatRoom} />
       <Route path={"/call/:id"} component={VideoCall} />
       <Route path={"/404"} component={NotFound} />
