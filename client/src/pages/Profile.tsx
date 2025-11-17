@@ -11,6 +11,8 @@ import { Loader2, Upload, User, Bell, Lock } from "lucide-react";
 import { useState } from "react";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { TwoFactorAuthDialog } from "@/components/TwoFactorAuthDialog";
+import { E2EESetupWizard } from "@/components/E2EESetupWizard";
+import { setupE2EE } from "@/lib/e2eeSetup";
 import { toast } from "sonner";
 import { Link } from "wouter";
 
@@ -33,6 +35,10 @@ export default function Profile() {
 
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [show2FADialog, setShow2FADialog] = useState(false);
+  const [showE2EEWizard, setShowE2EEWizard] = useState(false);
+  
+  const { data: e2eeStatus } = trpc.e2ee.isEnabled.useQuery();
+  const setupE2EEMutation = trpc.e2ee.setup.useMutation();
 
   const updateProfileMutation = trpc.user.updateProfile.useMutation({
     onSuccess: () => {
@@ -325,6 +331,14 @@ export default function Profile() {
             >
               Two-Factor Authentication
             </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowE2EEWizard(true)}
+              className="w-full justify-start"
+              disabled={e2eeStatus?.enabled}
+            >
+              {e2eeStatus?.enabled ? "End-to-End Encryption (Enabled)" : "Enable End-to-End Encryption"}
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -337,6 +351,32 @@ export default function Profile() {
       <TwoFactorAuthDialog 
         open={show2FADialog} 
         onOpenChange={setShow2FADialog} 
+      />
+      <E2EESetupWizard
+        open={showE2EEWizard}
+        onOpenChange={setShowE2EEWizard}
+        onComplete={async (password, recoveryCodes) => {
+          try {
+            const { publicKey, encryptedPrivateKey, keySalt, iv, hashedRecoveryCodes } = await setupE2EE(
+              password,
+              recoveryCodes
+            );
+            
+            await setupE2EEMutation.mutateAsync({
+              publicKey,
+              encryptedPrivateKey,
+              keySalt,
+              keyIv: iv,
+              recoveryCodes: hashedRecoveryCodes,
+            });
+            
+            toast.success("E2EE setup complete! Your messages are now secure.");
+          } catch (error) {
+            console.error("Failed to setup E2EE:", error);
+            throw error;
+          }
+        }}
+        canSkip={false}
       />
     </div>
   );

@@ -1247,6 +1247,45 @@ export const appRouter = router({
         return stats || { totalCalls: 0, totalDuration: 0, avgDuration: 0 };
       }),
   }),
+
+  e2ee: router({
+    // Setup E2EE for current user
+    setup: protectedProcedure
+      .input(z.object({
+        publicKey: z.string(),
+        encryptedPrivateKey: z.string(),
+        keySalt: z.string(),
+        keyIv: z.string(),
+        recoveryCodes: z.array(z.string()), // Hashed recovery codes
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        // Update user with E2EE keys
+        await db.update(users)
+          .set({
+            publicKey: input.publicKey,
+            encryptedPrivateKey: input.encryptedPrivateKey,
+            keySalt: input.keySalt,
+            recoveryCodes: JSON.stringify(input.recoveryCodes),
+          })
+          .where(eq(users.id, ctx.user.id));
+
+        return { success: true };
+      }),
+
+    // Check if user has E2EE enabled
+    isEnabled: protectedProcedure
+      .query(async ({ ctx }) => {
+        return {
+          enabled: !!(ctx.user.publicKey && ctx.user.encryptedPrivateKey),
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

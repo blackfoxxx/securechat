@@ -11,6 +11,10 @@ import AddContactModal from "@/components/AddContactModal";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import OnlineIndicator from "@/components/OnlineIndicator";
 import BlockedUsersDialog from "@/components/BlockedUsersDialog";
+import { E2EESetupWizard } from "@/components/E2EESetupWizard";
+import { setupE2EE } from "@/lib/e2eeSetup";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
 export default function ChatList() {
   const { user, isAuthenticated } = useAuth();
@@ -18,6 +22,23 @@ export default function ChatList() {
   const [isAddContactOpen, setIsAddContactOpen] = useState(false);
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
   const [isBlockedUsersOpen, setIsBlockedUsersOpen] = useState(false);
+  const [isE2EEWizardOpen, setIsE2EEWizardOpen] = useState(false);
+  
+  const { data: e2eeStatus } = trpc.e2ee.isEnabled.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  const setupE2EEMutation = trpc.e2ee.setup.useMutation();
+
+  // Auto-trigger E2EE wizard for new users
+  useEffect(() => {
+    if (e2eeStatus && !e2eeStatus.enabled) {
+      // Check if user has dismissed the wizard before
+      const dismissed = localStorage.getItem('e2ee-wizard-dismissed');
+      if (!dismissed) {
+        setIsE2EEWizardOpen(true);
+      }
+    }
+  }, [e2eeStatus]);
   const { data: conversations, isLoading } = trpc.chat.conversations.useQuery(undefined, {
     enabled: isAuthenticated,
   });
@@ -154,6 +175,39 @@ export default function ChatList() {
       <AddContactModal open={isAddContactOpen} onOpenChange={setIsAddContactOpen} />
       <CreateGroupDialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen} />
       <BlockedUsersDialog open={isBlockedUsersOpen} onOpenChange={setIsBlockedUsersOpen} />
+      
+      <E2EESetupWizard
+        open={isE2EEWizardOpen}
+        onOpenChange={(open) => {
+          setIsE2EEWizardOpen(open);
+          if (!open) {
+            // Mark as dismissed when user closes wizard
+            localStorage.setItem('e2ee-wizard-dismissed', 'true');
+          }
+        }}
+        onComplete={async (password, recoveryCodes) => {
+          try {
+            const { publicKey, encryptedPrivateKey, keySalt, iv, hashedRecoveryCodes } = await setupE2EE(
+              password,
+              recoveryCodes
+            );
+            
+            await setupE2EEMutation.mutateAsync({
+              publicKey,
+              encryptedPrivateKey,
+              keySalt,
+              keyIv: iv,
+              recoveryCodes: hashedRecoveryCodes,
+            });
+            
+            toast.success("E2EE setup complete! Your messages are now secure.");
+          } catch (error) {
+            console.error("Failed to setup E2EE:", error);
+            throw error;
+          }
+        }}
+        canSkip={true}
+      />
     </div>
   );
 }

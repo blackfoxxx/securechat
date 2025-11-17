@@ -487,7 +487,25 @@
 - [x] Complete message decryption flow in message display
 - [x] Add E2EE status indicators in message bubbles
 - [x] Handle encryption errors gracefully with fallback
-- [ ] Add E2EE setup wizard for first-time users
+- [x] Add E2EE setup wizard for first-time users
 - [x] Store encrypted private key securely in localStorage
 - [x] Implement key derivation from user password (PBKDF2)
 - [ ] Add re-encryption on password change
+
+
+## E2EE Setup Wizard
+
+- [x] Create multi-step wizard component with progress indicator
+- [x] Design welcome/introduction step explaining E2EE benefits
+- [x] Implement password creation step with strength validator
+- [x] Add password confirmation and matching validation
+- [x] Create recovery code generation (12-word mnemonic or 8 codes)
+- [x] Display recovery codes with copy and download options
+- [x] Add recovery code confirmation step (verify user saved codes)
+- [x] Implement key generation step with loading indicator
+- [x] Store encrypted private key and recovery codes in database
+- [x] Add completion step with success message
+- [x] Integrate wizard into registration flow for new users
+- [x] Add "Enable E2EE" button in profile/settings for existing users
+- [x] Create skip option with warning about security implications
+- [x] Add wizard re-trigger for users who skipped initial setup

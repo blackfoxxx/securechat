@@ -33,6 +33,8 @@ export const users = mysqlTable("users", {
   encryptedPrivateKey: text("encryptedPrivateKey"),
   /** Salt for key derivation (base64 encoded) */
   keySalt: text("keySalt"),
+  /** Recovery codes for E2EE key recovery (JSON array of codes, hashed) */
+  recoveryCodes: text("recoveryCodes"),
   /** Storage quota in bytes (null = use default from system settings) */
   storageQuota: int("storageQuota"),
   /** Current storage used in bytes */
