@@ -83,3 +83,13 @@ export const contacts = mysqlTable("contacts", {
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
+
+export const blockedUsers = mysqlTable("blocked_users", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // User who blocked
+  blockedUserId: int("blockedUserId").notNull(), // User who was blocked
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type BlockedUser = typeof blockedUsers.$inferSelect;
+export type InsertBlockedUser = typeof blockedUsers.$inferInsert;

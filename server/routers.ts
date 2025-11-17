@@ -64,6 +64,49 @@ export const appRouter = router({
         throw new Error("Invalid input");
       })
       .mutation(async ({ ctx, input }) => {
+        // Check if user is blocked before sending message
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (db) {
+          const { blockedUsers, conversationMembers } = await import("../drizzle/schema");
+          const { eq, and, or, inArray } = await import("drizzle-orm");
+          
+          // Get all members of the conversation
+          const members = await db
+            .select({ userId: conversationMembers.userId })
+            .from(conversationMembers)
+            .where(eq(conversationMembers.conversationId, input.conversationId));
+          
+          const memberIds = members.map(m => m.userId).filter(id => id !== ctx.user.id);
+          
+          // Check if current user is blocked by any member or has blocked any member
+          if (memberIds.length > 0) {
+            const blockExists = await db
+              .select({ id: blockedUsers.id })
+              .from(blockedUsers)
+              .where(
+                or(
+                  and(
+                    eq(blockedUsers.userId, ctx.user.id),
+                    inArray(blockedUsers.blockedUserId, memberIds)
+                  ),
+                  and(
+                    inArray(blockedUsers.userId, memberIds),
+                    eq(blockedUsers.blockedUserId, ctx.user.id)
+                  )
+                )
+              )
+              .limit(1);
+            
+            if (blockExists.length > 0) {
+              throw new TRPCError({ 
+                code: "FORBIDDEN", 
+                message: "Cannot send message: user is blocked" 
+              });
+            }
+          }
+        }
+        
         const { createMessage } = await import("./db");
         return createMessage({
           conversationId: input.conversationId,
@@ -306,6 +349,58 @@ export const appRouter = router({
         const { deleteUser } = await import("./db");
         return deleteUser(input.userId);
       }),
+  }),
+
+  blocking: router({
+    block: protectedProcedure
+      .input(z.object({ blockedUserId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const { blockedUsers } = await import("../drizzle/schema");
+        await db.insert(blockedUsers).values({
+          userId: ctx.user.id,
+          blockedUserId: input.blockedUserId,
+        });
+        return { success: true };
+      }),
+    unblock: protectedProcedure
+      .input(z.object({ blockedUserId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const { blockedUsers } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        await db.delete(blockedUsers).where(
+          and(
+            eq(blockedUsers.userId, ctx.user.id),
+            eq(blockedUsers.blockedUserId, input.blockedUserId)
+          )
+        );
+        return { success: true };
+      }),
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return [];
+      const { blockedUsers, users } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const blocked = await db
+        .select({
+          id: blockedUsers.id,
+          blockedUserId: blockedUsers.blockedUserId,
+          blockedUserName: users.name,
+          blockedUserUsername: users.username,
+          blockedUserAvatar: users.avatar,
+          createdAt: blockedUsers.createdAt,
+        })
+        .from(blockedUsers)
+        .leftJoin(users, eq(blockedUsers.blockedUserId, users.id))
+        .where(eq(blockedUsers.userId, ctx.user.id));
+      return blocked;
+    }),
   }),
 });
 

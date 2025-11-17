@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Search, User, UserPlus } from "lucide-react";
+import { Loader2, Search, User, UserPlus, Ban } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import OnlineIndicator from "@/components/OnlineIndicator";
@@ -41,8 +41,24 @@ export default function AddContactModal({ open, onOpenChange }: AddContactModalP
     },
   });
 
+  const blockMutation = trpc.blocking.block.useMutation({
+    onSuccess: () => {
+      toast.success("User blocked successfully");
+      onOpenChange(false);
+      setSearchQuery("");
+      setSelectedUser(null);
+    },
+    onError: () => {
+      toast.error("Failed to block user");
+    },
+  });
+
   const handleAddContact = (userId: number) => {
     addContactMutation.mutate({ contactId: userId });
+  };
+
+  const handleBlock = (userId: number) => {
+    blockMutation.mutate({ blockedUserId: userId });
   };
 
   return (
@@ -105,23 +121,40 @@ export default function AddContactModal({ open, onOpenChange }: AddContactModalP
                         <p className="text-xs text-muted-foreground truncate mt-1">{user.bio}</p>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddContact(user.id);
-                      }}
-                      disabled={addContactMutation.isPending}
-                    >
-                      {addContactMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <UserPlus className="h-4 w-4 mr-1" />
-                          Add
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddContact(user.id);
+                        }}
+                        disabled={addContactMutation.isPending}
+                      >
+                        {addContactMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            Add
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBlock(user.id);
+                        }}
+                        disabled={blockMutation.isPending}
+                      >
+                        {blockMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Ban className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

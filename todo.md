@@ -201,3 +201,14 @@
 ## Bug Fixes
 
 - [x] Fix setState during render error in AdminDashboard
+
+
+## User Blocking Feature
+
+- [x] Create blocked_users database table
+- [x] Add block/unblock endpoints to backend
+- [x] Add Block User option in contact modal
+- [x] Create blocked users list page
+- [x] Prevent blocked users from sending messages
+- [x] Add unblock functionality in blocked users list
+- [x] Add blocked users button in chat list
