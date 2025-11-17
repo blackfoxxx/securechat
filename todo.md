@@ -553,3 +553,13 @@
 - [x] Fix direct chat creation without adding to contacts
 - [x] Test search with different usernames
 - [x] Verify conversation navigation after creation
+
+
+## Debug Search Not Working
+
+- [x] Check server logs for SQL errors
+- [x] Test searchUsers endpoint with direct query
+- [x] Fix SQL syntax in search query
+- [x] Verify search results are returned
+- [x] Check frontend is receiving results
+- [x] Test auto-complete dropdown display

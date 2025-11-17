@@ -466,10 +466,9 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) return [];
         
-        const searchPattern = `%${input.query}%`;
+        const searchPattern = `%${input.query.toLowerCase()}%`;
         
         // Search by username or name, exclude current user
-        // Use COALESCE to handle NULL values in search
         const results = await db
           .select({
             id: users.id,
@@ -483,8 +482,8 @@ export const appRouter = router({
             and(
               ne(users.id, ctx.user.id),
               or(
-                sql`LOWER(COALESCE(${users.username}, '')) LIKE LOWER(${searchPattern})`,
-                sql`LOWER(COALESCE(${users.name}, '')) LIKE LOWER(${searchPattern})`
+                sql`LOWER(COALESCE(${users.username}, '')) LIKE ${searchPattern}`,
+                sql`LOWER(COALESCE(${users.name}, '')) LIKE ${searchPattern}`
               )
             )
           )
