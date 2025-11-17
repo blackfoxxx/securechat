@@ -225,10 +225,10 @@
 - [x] Add E2EE fields to message schema (encryptedContent, iv, encryptedKey)
 - [x] Update message display to show encryption status
 - [x] Add encryption indicators in UI
-- [ ] Complete E2EE message encryption flow in ChatRoom
-- [ ] Complete E2EE message decryption flow in ChatRoom
+- [x] Complete E2EE message encryption flow in ChatRoom
+- [x] Complete E2EE message decryption flow in ChatRoom
 - [ ] Handle key rotation and rekeying
-- [ ] Add E2EE unlock dialog for entering password
+- [x] Add E2EE unlock dialog for entering password
 
 
 ## Key Verification Feature (Security Codes)
@@ -475,3 +475,19 @@
 - [ ] Update message display for voice messages
 - [ ] Add voice message type to database
 - [ ] Test voice recording and playback
+
+
+## Complete E2EE Implementation
+
+- [x] Create E2EE unlock dialog component for password entry
+- [x] Implement private key decryption with user password
+- [x] Add E2EE toggle in chat room header
+- [x] Complete message encryption flow in sendMessage
+- [x] Implement automatic key exchange for new conversations
+- [x] Complete message decryption flow in message display
+- [x] Add E2EE status indicators in message bubbles
+- [x] Handle encryption errors gracefully with fallback
+- [ ] Add E2EE setup wizard for first-time users
+- [x] Store encrypted private key securely in localStorage
+- [x] Implement key derivation from user password (PBKDF2)
+- [ ] Add re-encryption on password change

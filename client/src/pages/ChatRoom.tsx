@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History, Lock as LockIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -17,6 +17,8 @@ import { MessageReply } from "@/components/MessageReply";
 import { useE2EE } from "@/contexts/E2EEContext";
 import KeyVerificationDialog from "@/components/KeyVerificationDialog";
 import { CallHistory } from "@/components/CallHistory";
+import { E2EEUnlockDialog } from "@/components/E2EEUnlockDialog";
+import { DecryptedMessage } from "@/components/DecryptedMessage";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +52,8 @@ export default function ChatRoom() {
   const [replyTo, setReplyTo] = useState<{ id: number; content: string; senderName: string } | null>(null);
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [callHistoryDialogOpen, setCallHistoryDialogOpen] = useState(false);
+  const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
+  const [e2eeEnabled, setE2eeEnabled] = useState(false);
   const [otherUser, setOtherUser] = useState<{ id: number; name: string; avatar?: string; publicKey?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -309,14 +313,53 @@ export default function ChatRoom() {
         toast.error("Failed to upload file");
       }
     } else if (message.trim()) {
-      // For now, send unencrypted messages
-      // E2EE will be enabled after proper key exchange setup
-      sendMessageMutation.mutate({
-        conversationId,
-        content: message,
-        replyToId: replyTo?.id,
-      });
-      setReplyTo(null);
+      // Check if E2EE is enabled and we have the necessary keys
+      if (e2eeEnabled && privateKey && otherUser?.publicKey) {
+        try {
+          // Generate a symmetric key for this message
+          const symmetricKey = await generateSymmetricKey();
+          
+          // Encrypt the message content
+          const { encryptedContent, iv } = await encryptMessage(message, symmetricKey);
+          
+          // Encrypt the symmetric key with recipient's public key
+          const recipientPublicKey = await importPublicKey(otherUser.publicKey);
+          const encryptedKey = await encryptSymmetricKey(symmetricKey, recipientPublicKey);
+          
+          // Generate sender key fingerprint for verification
+          const senderPublicKey = await importPublicKey(user!.publicKey!);
+          const senderKeyFingerprint = await generateKeyFingerprint(senderPublicKey);
+          
+          // Send encrypted message
+          sendMessageMutation.mutate({
+            conversationId,
+            encryptedContent,
+            iv,
+            encryptedKey,
+            senderKeyFingerprint,
+            replyToId: replyTo?.id,
+          });
+          setReplyTo(null);
+        } catch (error) {
+          console.error("Failed to encrypt message:", error);
+          toast.error("Failed to encrypt message. Sending unencrypted.");
+          // Fallback to unencrypted
+          sendMessageMutation.mutate({
+            conversationId,
+            content: message,
+            replyToId: replyTo?.id,
+          });
+          setReplyTo(null);
+        }
+      } else {
+        // Send unencrypted message
+        sendMessageMutation.mutate({
+          conversationId,
+          content: message,
+          replyToId: replyTo?.id,
+        });
+        setReplyTo(null);
+      }
     }
   };
 
@@ -459,6 +502,24 @@ export default function ChatRoom() {
                 <Shield className="h-4 w-4 mr-2" />
                 Verify
               </Button>
+              {isE2EEEnabled && otherUser?.publicKey && (
+                <Button
+                  variant={e2eeEnabled ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    if (!e2eeEnabled && !privateKey) {
+                      setUnlockDialogOpen(true);
+                    } else {
+                      setE2eeEnabled(!e2eeEnabled);
+                      toast.success(e2eeEnabled ? "E2EE disabled" : "E2EE enabled");
+                    }
+                  }}
+                  className="text-sm"
+                >
+                  <LockIcon className="h-4 w-4 mr-2" />
+                  {e2eeEnabled ? "E2EE On" : "E2EE Off"}
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -536,14 +597,13 @@ export default function ChatRoom() {
                 
                 {/* Display message content (encrypted or plain) */}
                 {msg.encryptedContent && msg.iv && msg.encryptedKey ? (
-                  <div className="text-sm">
-                    <p className="flex items-center gap-2">
-                      <span className="text-xs opacity-70">🔒 Encrypted message</span>
-                    </p>
-                    <p className="text-xs opacity-50 mt-1">
-                      End-to-end encrypted. Decryption requires your private key.
-                    </p>
-                  </div>
+                  <DecryptedMessage
+                    encryptedContent={msg.encryptedContent}
+                    iv={msg.iv}
+                    encryptedKey={msg.encryptedKey}
+                    senderKeyFingerprint={msg.senderKeyFingerprint || undefined}
+                    onUnlockRequest={() => setUnlockDialogOpen(true)}
+                  />
                 ) : (
                   msg.content && <p className="text-sm">{msg.content}</p>
                 )}
@@ -732,6 +792,16 @@ export default function ChatRoom() {
           <CallHistory conversationId={conversationId} />
         </DialogContent>
       </Dialog>
+
+      {/* E2EE Unlock Dialog */}
+      <E2EEUnlockDialog
+        open={unlockDialogOpen}
+        onOpenChange={setUnlockDialogOpen}
+        onUnlock={() => {
+          setE2eeEnabled(true);
+          toast.success("E2EE unlocked and enabled");
+        }}
+      />
     </div>
   );
 }
