@@ -404,6 +404,157 @@ export const appRouter = router({
         
         return result;
       }),
+    
+    changePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string(),
+        newPassword: z.string().min(8, "Password must be at least 8 characters"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const bcrypt = await import("bcryptjs");
+        
+        // Get user's current password hash
+        const userResult = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+        if (userResult.length === 0) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
+        
+        const user = userResult[0];
+        if (!user.passwordHash) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "No password set for this account" });
+        }
+        
+        // Verify current password
+        const isValid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+        if (!isValid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect" });
+        }
+        
+        // Hash new password
+        const newPasswordHash = await bcrypt.hash(input.newPassword, 10);
+        
+        // Update password
+        await db.update(users)
+          .set({ passwordHash: newPasswordHash })
+          .where(eq(users.id, ctx.user.id));
+        
+        return { success: true };
+      }),
+    
+    setup2FA: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const speakeasy = await import("speakeasy");
+        const QRCode = await import("qrcode");
+        
+        // Generate secret
+        const secret = speakeasy.generateSecret({
+          name: `Secure Chat (${ctx.user.username || ctx.user.email || ctx.user.name})`,
+          length: 32,
+        });
+        
+        // Generate QR code
+        const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url || "");
+        
+        // Store secret temporarily (will be confirmed on verification)
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        await db.update(users)
+          .set({ twoFactorSecret: secret.base32 })
+          .where(eq(users.id, ctx.user.id));
+        
+        return {
+          secret: secret.base32,
+          qrCode: qrCodeUrl,
+        };
+      }),
+    
+    verify2FA: protectedProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        // Get user's 2FA secret
+        const userResult = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+        if (userResult.length === 0 || !userResult[0].twoFactorSecret) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "2FA not set up" });
+        }
+        
+        const speakeasy = await import("speakeasy");
+        
+        // Verify token
+        const verified = speakeasy.totp.verify({
+          secret: userResult[0].twoFactorSecret,
+          encoding: "base32",
+          token: input.token,
+          window: 2, // Allow 2 time steps before/after for clock drift
+        });
+        
+        if (!verified) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid verification code" });
+        }
+        
+        // Enable 2FA
+        await db.update(users)
+          .set({ twoFactorEnabled: 1 })
+          .where(eq(users.id, ctx.user.id));
+        
+        return { success: true };
+      }),
+    
+    disable2FA: protectedProcedure
+      .input(z.object({ password: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const bcrypt = await import("bcryptjs");
+        
+        // Get user
+        const userResult = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+        if (userResult.length === 0) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
+        
+        const user = userResult[0];
+        if (!user.passwordHash) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "No password set for this account" });
+        }
+        
+        // Verify password
+        const isValid = await bcrypt.compare(input.password, user.passwordHash);
+        if (!isValid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Password is incorrect" });
+        }
+        
+        // Disable 2FA
+        await db.update(users)
+          .set({ 
+            twoFactorEnabled: 0,
+            twoFactorSecret: null,
+          })
+          .where(eq(users.id, ctx.user.id));
+        
+        return { success: true };
+      }),
   }),
   
   // Admin router

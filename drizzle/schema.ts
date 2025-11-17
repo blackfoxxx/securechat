@@ -37,6 +37,10 @@ export const users = mysqlTable("users", {
   storageQuota: int("storageQuota"),
   /** Current storage used in bytes */
   storageUsed: int("storageUsed").default(0).notNull(),
+  /** Two-factor authentication enabled */
+  twoFactorEnabled: int("twoFactorEnabled").default(0).notNull(),
+  /** Two-factor authentication secret (base32 encoded) */
+  twoFactorSecret: text("twoFactorSecret"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

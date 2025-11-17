@@ -9,6 +9,8 @@ import { trpc } from "@/lib/trpc";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Upload, User, Bell, Lock } from "lucide-react";
 import { useState } from "react";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { TwoFactorAuthDialog } from "@/components/TwoFactorAuthDialog";
 import { toast } from "sonner";
 import { Link } from "wouter";
 
@@ -28,6 +30,9 @@ export default function Profile() {
     groupNotifications: true,
     soundEnabled: true,
   });
+
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [show2FADialog, setShow2FADialog] = useState(false);
 
   const updateProfileMutation = trpc.user.updateProfile.useMutation({
     onSuccess: () => {
@@ -306,11 +311,33 @@ export default function Profile() {
             <CardDescription>Manage your account security</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button variant="outline">Change Password</Button>
-            <Button variant="outline">Two-Factor Authentication</Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowChangePassword(true)}
+              className="w-full justify-start"
+            >
+              Change Password
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShow2FADialog(true)}
+              className="w-full justify-start"
+            >
+              Two-Factor Authentication
+            </Button>
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialogs */}
+      <ChangePasswordDialog 
+        open={showChangePassword} 
+        onOpenChange={setShowChangePassword} 
+      />
+      <TwoFactorAuthDialog 
+        open={show2FADialog} 
+        onOpenChange={setShow2FADialog} 
+      />
     </div>
   );
 }

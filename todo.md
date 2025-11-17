@@ -428,3 +428,23 @@
 - [x] Track storage usage on file deletion
 - [ ] Show quota usage to regular users (not just admin)
 - [ ] Add file management documentation
+
+
+## Security Settings (Change Password & 2FA)
+
+- [x] Investigate current security settings page implementation
+- [x] Add password field to users table (already existed as passwordHash)
+- [x] Create change password API endpoint
+- [x] Implement password validation (old password check)
+- [x] Add password strength requirements
+- [x] Create change password UI component (ChangePasswordDialog)
+- [x] Add 2FA fields to users table (twoFactorEnabled, twoFactorSecret)
+- [x] Install speakeasy library for TOTP generation
+- [x] Create 2FA setup API endpoint
+- [x] Create 2FA verify API endpoint
+- [x] Create 2FA disable API endpoint
+- [x] Build 2FA setup UI with QR code (TwoFactorAuthDialog)
+- [x] Connect security dialogs to Profile page buttons
+- [ ] Add 2FA verification during login
+- [ ] Test password change functionality
+- [ ] Test 2FA setup and verification
