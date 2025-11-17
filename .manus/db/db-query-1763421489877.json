@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, username, name FROM users WHERE username = 'blackfoxxx'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2JMyMgHUwTk4TtY.root --database 6TmtRBHRgpWaugmVgmBuRr --execute SELECT id, username, name FROM users WHERE username = 'blackfoxxx'",
+  "rows": [
+    {
+      "id": "690217",
+      "username": "blackfoxxx",
+      "name": "Black Fox"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tusername\tname\n690217\tblackfoxxx\tBlack Fox\n",
+  "stderr": "",
+  "execution_time_ms": 53
+}
