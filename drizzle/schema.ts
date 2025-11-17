@@ -56,11 +56,12 @@ export const messages = mysqlTable("messages", {
   id: int("id").autoincrement().primaryKey(),
   conversationId: int("conversationId").notNull(),
   senderId: int("senderId").notNull(),
-  content: text("content").notNull(),
-  encryptedContent: text("encryptedContent"),
-  type: mysqlEnum("type", ["text", "image", "file", "audio", "video"]).default("text").notNull(),
+  content: text("content"),
   fileUrl: text("fileUrl"),
-  status: mysqlEnum("status", ["sent", "delivered", "read"]).default("sent").notNull(),
+  fileName: varchar("fileName", { length: 255 }),
+  fileType: varchar("fileType", { length: 100 }),
+  fileSize: int("fileSize"),
+  thumbnailUrl: text("thumbnailUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

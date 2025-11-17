@@ -147,15 +147,29 @@ export async function getConversationMessages(conversationId: number, limit: num
     .limit(limit);
 }
 
-export async function createMessage(data: { conversationId: number; senderId: number; content: string; type?: string }) {
+export async function createMessage(data: { 
+  conversationId: number; 
+  senderId: number; 
+  content?: string; 
+  type?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  thumbnailUrl?: string;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
   const result = await db.insert(messages).values({
     conversationId: data.conversationId,
     senderId: data.senderId,
-    content: data.content,
-    type: (data.type as any) || "text",
+    content: data.content || null,
+    fileUrl: data.fileUrl || null,
+    fileName: data.fileName || null,
+    fileType: data.fileType || null,
+    fileSize: data.fileSize || null,
+    thumbnailUrl: data.thumbnailUrl || null,
   });
   
   return result;

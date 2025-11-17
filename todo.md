@@ -97,3 +97,18 @@
 - [x] Frontend: Display "User is typing..." indicator in chat room
 - [x] Frontend: Auto-clear typing indicator after timeout
 - [x] Frontend: Debounce typing events to reduce network traffic
+
+
+## File and Image Sharing
+
+- [x] Update database schema to support file attachments in messages
+- [x] Backend: Add file upload endpoint with S3 storage
+- [x] Backend: Generate thumbnails for image files
+- [x] Backend: Store file metadata (name, size, type, URL)
+- [x] Frontend: Add file picker button to chat input
+- [x] Frontend: Implement drag-and-drop file upload
+- [x] Frontend: Show file upload progress indicator
+- [x] Frontend: Display image thumbnails in chat messages
+- [x] Frontend: Display file icons and download buttons for documents
+- [x] Frontend: Add image preview/lightbox on click
+- [x] Frontend: Validate file size and type before upload

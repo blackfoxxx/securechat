@@ -47,8 +47,17 @@ export const appRouter = router({
       }),
     sendMessage: protectedProcedure
       .input((val: unknown) => {
-        if (typeof val === "object" && val !== null && "conversationId" in val && "content" in val) {
-          return val as { conversationId: number; content: string; type?: string };
+        if (typeof val === "object" && val !== null && "conversationId" in val) {
+          return val as { 
+            conversationId: number; 
+            content?: string; 
+            type?: string;
+            fileUrl?: string;
+            fileName?: string;
+            fileType?: string;
+            fileSize?: number;
+            thumbnailUrl?: string;
+          };
         }
         throw new Error("Invalid input");
       })
@@ -59,7 +68,48 @@ export const appRouter = router({
           senderId: ctx.user.id,
           content: input.content,
           type: input.type,
+          fileUrl: input.fileUrl,
+          fileName: input.fileName,
+          fileType: input.fileType,
+          fileSize: input.fileSize,
+          thumbnailUrl: input.thumbnailUrl,
         });
+      }),
+
+    uploadFile: protectedProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null && "fileName" in val && "fileType" in val && "fileData" in val) {
+          return val as { fileName: string; fileType: string; fileSize: number; fileData: string };
+        }
+        throw new Error("Invalid input");
+      })
+      .mutation(async ({ ctx, input }) => {
+        const { storagePut } = await import("./storage");
+        
+        // Decode base64 file data
+        const fileBuffer = Buffer.from(input.fileData, 'base64');
+        
+        // Generate unique file key
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substring(7);
+        const fileKey = `chat-files/${ctx.user.id}/${timestamp}-${randomSuffix}-${input.fileName}`;
+        
+        // Upload to S3
+        const { url } = await storagePut(fileKey, fileBuffer, input.fileType);
+        
+        // Generate thumbnail for images
+        let thumbnailUrl = null;
+        if (input.fileType.startsWith('image/')) {
+          thumbnailUrl = url; // For now, use the same URL
+        }
+        
+        return {
+          fileUrl: url,
+          fileName: input.fileName,
+          fileType: input.fileType,
+          fileSize: input.fileSize,
+          thumbnailUrl,
+        };
       }),
   }),
   contacts: router({

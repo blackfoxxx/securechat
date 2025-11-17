@@ -4,9 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "wouter";
+import { toast } from "sonner";
 
 export default function ChatRoom() {
   const { id } = useParams<{ id: string }>();
@@ -15,9 +16,13 @@ export default function ChatRoom() {
   const { socket, connected } = useSocket();
   const [message, setMessage] = useState("");
   const [typingUsers, setTypingUsers] = useState<{ userId: number; userName: string }[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: messages, refetch } = trpc.chat.messages.useQuery(
     { conversationId },
@@ -28,8 +33,12 @@ export default function ChatRoom() {
     onSuccess: () => {
       refetch();
       setMessage("");
+      setSelectedFile(null);
+      setFilePreview(null);
     },
   });
+
+  const uploadFileMutation = trpc.chat.uploadFile.useMutation();
 
   useEffect(() => {
     if (socket && connected) {
@@ -98,20 +107,93 @@ export default function ChatRoom() {
     }, 3000);
   };
 
-  const handleSendMessage = () => {
-    if (message.trim() && user) {
-      // Stop typing indicator
-      if (socket && isTypingRef.current) {
-        socket.emit("typing:stop", {
-          conversationId,
-          userId: user.id,
-        });
-        isTypingRef.current = false;
-      }
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
+  const handleFileSelect = (file: File) => {
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB");
+      return;
+    }
 
+    setSelectedFile(file);
+
+    // Generate preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!user) return;
+
+    // Stop typing indicator
+    if (socket && isTypingRef.current) {
+      socket.emit("typing:stop", {
+        conversationId,
+        userId: user.id,
+      });
+      isTypingRef.current = false;
+    }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    if (selectedFile) {
+      // Upload file first
+      try {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Data = (reader.result as string).split(',')[1];
+          
+          const uploadResult = await uploadFileMutation.mutateAsync({
+            fileName: selectedFile.name,
+            fileType: selectedFile.type,
+            fileSize: selectedFile.size,
+            fileData: base64Data,
+          });
+
+          // Send message with file attachment
+          sendMessageMutation.mutate({
+            conversationId,
+            content: message.trim() || undefined,
+            fileUrl: uploadResult.fileUrl,
+            fileName: uploadResult.fileName,
+            fileType: uploadResult.fileType,
+            fileSize: uploadResult.fileSize,
+            thumbnailUrl: uploadResult.thumbnailUrl || undefined,
+          });
+        };
+        reader.readAsDataURL(selectedFile);
+      } catch (error) {
+        toast.error("Failed to upload file");
+      }
+    } else if (message.trim()) {
+      // Send text-only message
       sendMessageMutation.mutate({
         conversationId,
         content: message,
@@ -149,7 +231,30 @@ export default function ChatRoom() {
                     : "bg-muted"
                 }`}
               >
-                <p className="text-sm">{msg.content}</p>
+                {/* Image preview */}
+                {msg.fileUrl && msg.fileType?.startsWith('image/') && (
+                  <img 
+                    src={msg.thumbnailUrl || msg.fileUrl} 
+                    alt={msg.fileName || "Image"}
+                    className="rounded-lg max-w-full mb-2 cursor-pointer"
+                    onClick={() => window.open(msg.fileUrl!, '_blank')}
+                  />
+                )}
+                
+                {/* File attachment */}
+                {msg.fileUrl && !msg.fileType?.startsWith('image/') && (
+                  <a 
+                    href={msg.fileUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 p-2 bg-background/10 rounded mb-2 hover:bg-background/20"
+                  >
+                    <File className="h-4 w-4" />
+                    <span className="text-sm truncate">{msg.fileName}</span>
+                  </a>
+                )}
+                
+                {msg.content && <p className="text-sm">{msg.content}</p>}
                 <p className="text-xs opacity-70 mt-1">
                   {new Date(msg.createdAt).toLocaleTimeString()}
                 </p>
@@ -185,8 +290,60 @@ export default function ChatRoom() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t p-4">
+      <div 
+        className={`border-t p-4 ${isDragging ? 'bg-accent' : ''}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {/* File preview */}
+        {selectedFile && (
+          <div className="mb-3 p-3 border rounded-lg bg-muted">
+            <div className="flex items-center gap-3">
+              {filePreview ? (
+                <img src={filePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />
+              ) : (
+                <div className="w-16 h-16 flex items-center justify-center bg-background rounded">
+                  <File className="h-8 w-8" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {(selectedFile.size / 1024).toFixed(1)} KB
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedFile(null);
+                  setFilePreview(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileSelect(file);
+            }}
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
           <Input
             value={message}
             onChange={(e) => {
@@ -194,10 +351,13 @@ export default function ChatRoom() {
               handleTyping();
             }}
             onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-            placeholder="Type a message..."
+            placeholder={isDragging ? "Drop file here..." : "Type a message..."}
             className="flex-1"
           />
-          <Button onClick={handleSendMessage} disabled={!message.trim()}>
+          <Button 
+            onClick={handleSendMessage} 
+            disabled={!message.trim() && !selectedFile}
+          >
             <Send className="h-4 w-4" />
           </Button>
         </div>
