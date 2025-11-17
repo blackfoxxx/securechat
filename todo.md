@@ -395,3 +395,15 @@
 - [x] Add toggle participants panel button
 - [ ] Implement real-time participant join/leave tracking
 - [ ] Test group calls with multiple users
+
+
+## Installation Script & Documentation Updates
+
+- [x] Update install.sh with Jitsi Meet setup
+- [x] Add Docker and Docker Compose checks
+- [x] Create .env.template with all new variables
+- [x] Add Jitsi configuration to install script
+- [x] Update README.md with complete feature list
+- [ ] Update DEPLOYMENT.md with group calls info
+- [ ] Create quick start guide for M2M deployment
+- [ ] Test installation script on fresh system

@@ -16,10 +16,13 @@ A modern, secure chat application with end-to-end encryption, real-time messagin
 - **Typing Indicators** - Real-time typing status
 
 ### Voice & Video Calls
-- **HD Video Calls** - Crystal clear video calling powered by LiveKit
+- **HD Video Calls** - Crystal clear video calling powered by Jitsi Meet
 - **Voice Calls** - High-quality audio calls
-- **Screen Sharing** - Share your screen during calls
-- **Group Calls** - Multi-participant video conferences
+- **Group Video Calls** - Multi-participant conferences (up to 75 users)
+- **Call History** - Track all calls with duration and participants
+- **Incoming Call Notifications** - Real-time call alerts with ringtone
+- **Participants List** - See who's in the call with mute status
+- **Self-Hosted** - Deploy Jitsi locally for M2M networks
 
 ### Security & Privacy
 - **End-to-End Encryption** - Messages encrypted client-side
@@ -52,6 +55,7 @@ A modern, secure chat application with end-to-end encryption, real-time messagin
 - Node.js 18+ 
 - pnpm 8+
 - MySQL 8+ or TiDB
+- Docker & Docker Compose (optional, for Jitsi Meet video calls)
 
 ### Installation
 
