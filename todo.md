@@ -48,3 +48,8 @@
 - [ ] Archived chats
 - [ ] Starred messages
 - [ ] Chat wallpaper customization
+
+
+## Bug Fixes
+
+- [x] Fix /chats route returning 404 error

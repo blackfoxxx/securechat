@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { Streamdown } from 'streamdown';
+import { Link } from "wouter";
 
 /**
  * All content in this page are only for example, replace with your own feature implementation
@@ -56,9 +57,11 @@ export default function Home() {
           
           {isAuthenticated ? (
             <div className="flex gap-4 justify-center">
-              <Button size="lg" onClick={() => window.location.href = "/chats"}>
-                Go to Chats
-              </Button>
+              <Link href="/chats">
+                <Button size="lg">
+                  Go to Chats
+                </Button>
+              </Link>
             </div>
           ) : (
             <Button size="lg" onClick={() => window.location.href = getLoginUrl()}>
