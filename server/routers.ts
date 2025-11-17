@@ -232,11 +232,9 @@ export const appRouter = router({
         throw new Error("Invalid input");
       })
       .mutation(async ({ input }) => {
-        // Simple hardcoded admin credentials (in production, use database)
-        const ADMIN_USERNAME = "admin";
-        const ADMIN_PASSWORD = "admin123";
+        const { adminUsername, adminPassword } = (await import("./_core/env")).ENV;
         
-        if (input.username === ADMIN_USERNAME && input.password === ADMIN_PASSWORD) {
+        if (input.username === adminUsername && input.password === adminPassword) {
           return { success: true };
         }
         return { success: false };

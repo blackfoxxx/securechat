@@ -90,8 +90,7 @@ export default function AdminLogin() {
         </form>
 
         <div className="mt-4 text-center text-sm text-muted-foreground">
-          <p>Default credentials:</p>
-          <p>Username: admin | Password: admin123</p>
+          <p>Enter your admin credentials to continue</p>
         </div>
       </Card>
     </div>

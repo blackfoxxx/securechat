@@ -189,3 +189,10 @@
 - [x] Protect /admin route with authentication
 - [x] Store admin credentials securely
 - [x] Add session management for admin users
+
+
+## Security Improvements
+
+- [x] Move admin credentials to environment variables
+- [x] Update admin login to use environment variables
+- [x] Document environment variables in README
