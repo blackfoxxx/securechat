@@ -24,7 +24,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { Users, UserPlus, Bell, Activity, HardDrive, Clock, Send } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { SendNotificationDialog } from "@/components/SendNotificationDialog";
@@ -42,8 +42,14 @@ export default function AdminDashboard() {
   const isAdminAuthenticated = sessionStorage.getItem("adminAuthenticated") === "true";
   
   // Redirect to admin login if not authenticated
+  useEffect(() => {
+    if (!loading && (!user || user.role !== "admin" || !isAdminAuthenticated)) {
+      setLocation("/admin/login");
+    }
+  }, [loading, user, isAdminAuthenticated, setLocation]);
+  
+  // Show loading or return null while redirecting
   if (!loading && (!user || user.role !== "admin" || !isAdminAuthenticated)) {
-    setLocation("/admin/login");
     return null;
   }
 
