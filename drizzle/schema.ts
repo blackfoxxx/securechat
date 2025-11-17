@@ -64,6 +64,7 @@ export const messages = mysqlTable("messages", {
   fileSize: int("fileSize"),
   thumbnailUrl: text("thumbnailUrl"),
   audioDuration: int("audioDuration"), // Duration in seconds for voice messages
+  readBy: text("readBy"), // JSON array of user IDs who have read this message
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

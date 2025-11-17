@@ -140,3 +140,27 @@
 - [ ] Frontend: Remove members from group (admin only)
 - [ ] Frontend: Leave group functionality
 - [ ] Frontend: Show group member count in chat list
+
+
+## Message Read Receipts
+
+- [x] Update database schema to track message read status
+- [x] Backend: Add Socket.IO event for message read
+- [x] Backend: Track which users have read which messages
+- [x] Frontend: Emit read event when user views conversation
+- [x] Frontend: Display single checkmark for sent messages
+- [x] Frontend: Display double checkmark for delivered messages
+- [x] Frontend: Display blue double checkmark for read messages
+- [x] Frontend: Update checkmarks in real-time via Socket.IO
+
+## Message Context Menu & Forwarding
+
+- [x] Frontend: Add context menu component (right-click/long-press)
+- [x] Frontend: Show context menu on message interaction
+- [x] Frontend: Add "Forward" option to context menu
+- [x] Frontend: Add "Copy" option to context menu
+- [x] Frontend: Add "Delete" option to context menu
+- [x] Frontend: Create forward dialog to select conversations
+- [x] Backend: Add delete message endpoint
+- [x] Frontend: Implement copy to clipboard functionality
+- [x] Frontend: Handle message forwarding to multiple chats

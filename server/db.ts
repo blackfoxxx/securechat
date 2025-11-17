@@ -462,3 +462,63 @@ export async function getGroupMembers(conversationId: number) {
 
   return members;
 }
+
+
+export async function markMessageAsRead(messageId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Get current message
+  const message = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.id, messageId))
+    .limit(1);
+
+  if (message.length === 0) {
+    throw new Error("Message not found");
+  }
+
+  // Parse existing readBy array
+  let readBy: number[] = [];
+  if (message[0].readBy) {
+    try {
+      readBy = JSON.parse(message[0].readBy);
+    } catch (e) {
+      readBy = [];
+    }
+  }
+
+  // Add userId if not already in the array
+  if (!readBy.includes(userId)) {
+    readBy.push(userId);
+    
+    // Update message with new readBy array
+    await db
+      .update(messages)
+      .set({ readBy: JSON.stringify(readBy) })
+      .where(eq(messages.id, messageId));
+  }
+
+  return { success: true };
+}
+
+export async function deleteMessage(messageId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Verify user owns the message
+  const message = await db
+    .select()
+    .from(messages)
+    .where(and(eq(messages.id, messageId), eq(messages.senderId, userId)))
+    .limit(1);
+
+  if (message.length === 0) {
+    throw new Error("Message not found or unauthorized");
+  }
+
+  await db.delete(messages).where(eq(messages.id, messageId));
+
+  return { success: true };
+}

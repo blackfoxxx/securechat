@@ -4,12 +4,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File, Mic } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "wouter";
 import { toast } from "sonner";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { AudioPlayer } from "@/components/AudioPlayer";
+import { MessageContextMenu } from "@/components/MessageContextMenu";
+import { ForwardMessageDialog } from "@/components/ForwardMessageDialog";
 
 export default function ChatRoom() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +24,8 @@ export default function ChatRoom() {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
+  const [messageToForward, setMessageToForward] = useState<{ id: number; content: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
@@ -42,6 +46,15 @@ export default function ChatRoom() {
   });
 
   const uploadFileMutation = trpc.chat.uploadFile.useMutation();
+  const deleteMessageMutation = trpc.chat.deleteMessage.useMutation({
+    onSuccess: () => {
+      refetch();
+      toast.success("Message deleted");
+    },
+    onError: () => {
+      toast.error("Failed to delete message");
+    },
+  });
 
   useEffect(() => {
     if (socket && connected) {
@@ -67,10 +80,16 @@ export default function ChatRoom() {
         }
       });
 
+      // Listen for read receipt updates
+      socket.on("message:read:update", () => {
+        refetch(); // Refresh messages to get updated read status
+      });
+
       return () => {
         socket.off("new-message");
         socket.off("typing:user-started");
         socket.off("typing:user-stopped");
+        socket.off("message:read:update");
         socket.emit("leave-conversation", conversationId);
       };
     }
@@ -79,6 +98,21 @@ export default function ChatRoom() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Mark messages as read when viewing conversation
+  useEffect(() => {
+    if (!socket || !user || !messages) return;
+
+    // Mark all unread messages from others as read
+    messages.forEach((msg: any) => {
+      if (msg.senderId !== user.id) {
+        const readBy = msg.readBy ? JSON.parse(msg.readBy) : [];
+        if (!readBy.includes(user.id)) {
+          socket.emit("message:read", { messageId: msg.id, userId: user.id });
+        }
+      }
+    });
+  }, [messages, socket, user]);
 
   const handleTyping = () => {
     if (!socket || !user) return;
@@ -256,18 +290,40 @@ export default function ChatRoom() {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages && messages.length > 0 ? (
-          messages.map((msg) => (
+          messages.map((msg) => {
+            const readBy = msg.readBy ? JSON.parse(msg.readBy) : [];
+            const isRead = readBy.length > 0;
+            const isDelivered = true; // Assume delivered if in DB
+            const isSent = msg.senderId === user?.id;
+
+            return (
             <div
               key={msg.id}
               className={`flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"}`}
             >
-              <Card
-                className={`p-3 max-w-[70%] ${
-                  msg.senderId === user?.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                }`}
+              <MessageContextMenu
+                onCopy={() => {
+                  if (msg.content) {
+                    navigator.clipboard.writeText(msg.content);
+                    toast.success("Message copied to clipboard");
+                  }
+                }}
+                onForward={() => {
+                  setMessageToForward({ id: msg.id, content: msg.content || "" });
+                  setForwardDialogOpen(true);
+                }}
+                onDelete={() => {
+                  deleteMessageMutation.mutate({ messageId: msg.id });
+                }}
+                canDelete={msg.senderId === user?.id}
               >
+                <Card
+                  className={`p-3 max-w-[70%] ${
+                    msg.senderId === user?.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  }`}
+                >
                 {/* Image preview */}
                 {msg.fileUrl && msg.fileType?.startsWith('image/') && (
                   <img 
@@ -299,12 +355,27 @@ export default function ChatRoom() {
                 )}
                 
                 {msg.content && <p className="text-sm">{msg.content}</p>}
-                <p className="text-xs opacity-70 mt-1">
-                  {new Date(msg.createdAt).toLocaleTimeString()}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs opacity-70">
+                    {new Date(msg.createdAt).toLocaleTimeString()}
+                  </p>
+                  {isSent && (
+                    <span className="text-xs">
+                      {isRead ? (
+                        <CheckCheck className="h-3 w-3 text-blue-500" />
+                      ) : isDelivered ? (
+                        <CheckCheck className="h-3 w-3" />
+                      ) : (
+                        <Check className="h-3 w-3" />
+                      )}
+                    </span>
+                  )}
+                </div>
               </Card>
+              </MessageContextMenu>
             </div>
-          ))
+            );
+          })
         ) : (
           <div className="text-center text-muted-foreground">
             No messages yet. Start the conversation!
@@ -423,6 +494,16 @@ export default function ChatRoom() {
           </div>
         )}
       </div>
+
+      {/* Forward Message Dialog */}
+      {messageToForward && (
+        <ForwardMessageDialog
+          open={forwardDialogOpen}
+          onOpenChange={setForwardDialogOpen}
+          messageContent={messageToForward.content}
+          messageId={messageToForward.id}
+        />
+      )}
     </div>
   );
 }

@@ -53,6 +53,19 @@ export function setupPresence(httpServer: HTTPServer) {
       socket.broadcast.emit("typing:user-stopped", { conversationId, userId });
     });
 
+    // Handle message read
+    socket.on("message:read", async ({ messageId, userId }: { messageId: number; userId: number }) => {
+      try {
+        const { markMessageAsRead } = await import("./db");
+        await markMessageAsRead(messageId, userId);
+        
+        // Broadcast to all users
+        io.emit("message:read:update", { messageId, userId });
+      } catch (error) {
+        console.error("Error marking message as read:", error);
+      }
+    });
+
     // Handle disconnect
     socket.on("disconnect", () => {
       console.log(`Socket disconnected: ${socket.id}`);

@@ -78,6 +78,18 @@ export const appRouter = router({
         });
       }),
 
+    deleteMessage: protectedProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null && "messageId" in val) {
+          return val as { messageId: number };
+        }
+        throw new Error("Invalid input");
+      })
+      .mutation(async ({ ctx, input }) => {
+        const { deleteMessage } = await import("./db");
+        return deleteMessage(input.messageId, ctx.user.id);
+      }),
+
     createGroup: protectedProcedure
       .input((val: unknown) => {
         if (typeof val === "object" && val !== null && "name" in val && "memberIds" in val) {
