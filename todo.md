@@ -212,3 +212,20 @@
 - [x] Prevent blocked users from sending messages
 - [x] Add unblock functionality in blocked users list
 - [x] Add blocked users button in chat list
+
+
+## End-to-End Encryption (E2EE) Implementation
+
+- [x] Update database schema to store user encryption keys
+- [x] Create crypto utility functions for key generation
+- [x] Implement AES-GCM encryption/decryption functions
+- [x] Generate key pairs on user registration/login
+- [x] Store encryption keys securely in database
+- [x] Implement key exchange for conversations (getPublicKeys endpoint)
+- [x] Add E2EE fields to message schema (encryptedContent, iv, encryptedKey)
+- [x] Update message display to show encryption status
+- [x] Add encryption indicators in UI
+- [ ] Complete E2EE message encryption flow in ChatRoom
+- [ ] Complete E2EE message decryption flow in ChatRoom
+- [ ] Handle key rotation and rekeying
+- [ ] Add E2EE unlock dialog for entering password

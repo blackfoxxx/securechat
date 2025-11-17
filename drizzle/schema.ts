@@ -27,6 +27,12 @@ export const users = mysqlTable("users", {
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   /** Notification preferences stored as JSON */
   notificationPreferences: text("notificationPreferences"),
+  /** Public key for E2EE (base64 encoded) */
+  publicKey: text("publicKey"),
+  /** Encrypted private key for E2EE (base64 encoded, encrypted with user's password-derived key) */
+  encryptedPrivateKey: text("encryptedPrivateKey"),
+  /** Salt for key derivation (base64 encoded) */
+  keySalt: text("keySalt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -70,6 +76,14 @@ export const messages = mysqlTable("messages", {
   reactions: text("reactions"), // JSON object mapping emoji to user IDs: {"👍": [1, 2], "❤️": [3]}
   replyToId: int("replyToId"), // ID of the message being replied to
   isStarred: int("isStarred").default(0).notNull(), // 1 if starred
+  /** Encrypted content (replaces plaintext content for E2EE messages) */
+  encryptedContent: text("encryptedContent"),
+  /** Initialization vector for encryption (base64 encoded) */
+  iv: text("iv"),
+  /** Encrypted symmetric key for this message (base64 encoded) */
+  encryptedKey: text("encryptedKey"),
+  /** Sender's public key fingerprint for verification */
+  senderKeyFingerprint: varchar("senderKeyFingerprint", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

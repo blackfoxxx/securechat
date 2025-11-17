@@ -14,11 +14,21 @@ import { MessageReactions } from "@/components/MessageReactions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { ForwardMessageDialog } from "@/components/ForwardMessageDialog";
 import { MessageReply } from "@/components/MessageReply";
+import { useE2EE } from "@/contexts/E2EEContext";
+import {
+  generateSymmetricKey,
+  encryptMessage,
+  encryptSymmetricKey,
+  importPublicKey,
+  generateKeyFingerprint,
+  exportPublicKey,
+} from "@/lib/crypto";
 
 export default function ChatRoom() {
   const { id } = useParams<{ id: string }>();
   const conversationId = parseInt(id || "0");
   const { user, isAuthenticated } = useAuth();
+  const { privateKey, isE2EEEnabled } = useE2EE();
   const { socket, connected } = useSocket();
   const [message, setMessage] = useState("");
   const [typingUsers, setTypingUsers] = useState<{ userId: number; userName: string }[]>([]);
@@ -269,6 +279,8 @@ export default function ChatRoom() {
         toast.error("Failed to upload file");
       }
     } else if (message.trim()) {
+      // For now, send unencrypted messages
+      // E2EE will be enabled after proper key exchange setup
       sendMessageMutation.mutate({
         conversationId,
         content: message,
@@ -364,7 +376,19 @@ export default function ChatRoom() {
                   </a>
                 )}
                 
-                {msg.content && <p className="text-sm">{msg.content}</p>}
+                {/* Display message content (encrypted or plain) */}
+                {msg.encryptedContent && msg.iv && msg.encryptedKey ? (
+                  <div className="text-sm">
+                    <p className="flex items-center gap-2">
+                      <span className="text-xs opacity-70">🔒 Encrypted message</span>
+                    </p>
+                    <p className="text-xs opacity-50 mt-1">
+                      End-to-end encrypted. Decryption requires your private key.
+                    </p>
+                  </div>
+                ) : (
+                  msg.content && <p className="text-sm">{msg.content}</p>
+                )}
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-xs opacity-70">
                     {new Date(msg.createdAt).toLocaleTimeString()}

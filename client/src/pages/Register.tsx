@@ -8,6 +8,12 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
+import {
+  generateKeyPair,
+  exportPublicKey,
+  encryptPrivateKey,
+  generateSalt,
+} from "@/lib/crypto";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -29,7 +35,7 @@ export default function Register() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -48,11 +54,32 @@ export default function Register() {
       return;
     }
 
-    registerMutation.mutate({
-      email: formData.email,
-      password: formData.password,
-      name: formData.name,
-    });
+    try {
+      // Generate E2EE keys
+      toast.info("Generating encryption keys...");
+      const keyPair = await generateKeyPair();
+      const publicKey = await exportPublicKey(keyPair.publicKey);
+      const salt = generateSalt();
+      const { encryptedKey, iv } = await encryptPrivateKey(
+        keyPair.privateKey,
+        formData.password,
+        salt
+      );
+
+      // Register with keys
+      registerMutation.mutate({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        publicKey,
+        encryptedPrivateKey: encryptedKey,
+        keySalt: salt,
+        keyIv: iv,
+      });
+    } catch (error) {
+      console.error("Key generation error:", error);
+      toast.error("Failed to generate encryption keys");
+    }
   };
 
   return (

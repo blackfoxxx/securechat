@@ -22,6 +22,10 @@ export const appRouter = router({
         email: z.string().email(),
         password: z.string().min(8),
         name: z.string().optional(),
+        publicKey: z.string().optional(),
+        encryptedPrivateKey: z.string().optional(),
+        keySalt: z.string().optional(),
+        keyIv: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const { registerUser } = await import("./db");
@@ -59,6 +63,10 @@ export const appRouter = router({
             thumbnailUrl?: string;
             audioDuration?: number;
             replyToId?: number;
+            encryptedContent?: string;
+            iv?: string;
+            encryptedKey?: string;
+            senderKeyFingerprint?: string;
           };
         }
         throw new Error("Invalid input");
@@ -262,6 +270,26 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const { searchUserByUsername } = await import("./db");
         return searchUserByUsername(input.username);
+      }),
+    
+    getPublicKeys: protectedProcedure
+      .input(z.object({ userIds: z.array(z.number()) }))
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return [];
+        const { users } = await import("../drizzle/schema");
+        const { inArray } = await import("drizzle-orm");
+        
+        const result = await db
+          .select({
+            id: users.id,
+            publicKey: users.publicKey,
+          })
+          .from(users)
+          .where(inArray(users.id, input.userIds));
+        
+        return result;
       }),
   }),
   

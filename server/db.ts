@@ -172,6 +172,10 @@ export async function createMessage(data: {
   thumbnailUrl?: string;
   audioDuration?: number;
   replyToId?: number;
+  encryptedContent?: string;
+  iv?: string;
+  encryptedKey?: string;
+  senderKeyFingerprint?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -187,6 +191,10 @@ export async function createMessage(data: {
     thumbnailUrl: data.thumbnailUrl || null,
     audioDuration: data.audioDuration || null,
     replyToId: data.replyToId || null,
+    encryptedContent: data.encryptedContent || null,
+    iv: data.iv || null,
+    encryptedKey: data.encryptedKey || null,
+    senderKeyFingerprint: data.senderKeyFingerprint || null,
   });
   
   return result;
@@ -372,7 +380,15 @@ export async function addUserContact(userId: number, contactId: number) {
 }
 
 
-export async function registerUser(data: { email: string; password: string; name?: string }) {
+export async function registerUser(data: { 
+  email: string; 
+  password: string; 
+  name?: string;
+  publicKey?: string;
+  encryptedPrivateKey?: string;
+  keySalt?: string;
+  keyIv?: string;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -400,6 +416,9 @@ export async function registerUser(data: { email: string; password: string; name
     passwordHash,
     name: data.name || null,
     loginMethod: "local",
+    publicKey: data.publicKey || null,
+    encryptedPrivateKey: data.encryptedPrivateKey || null,
+    keySalt: data.keySalt || null,
   });
 
   return { success: true, message: "Account created successfully" };
