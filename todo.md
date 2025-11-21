@@ -579,3 +579,10 @@
 - [x] Add E2EEProvider to App.tsx provider hierarchy
 - [x] Verify ChatRoom can access useE2EE hook
 - [x] Test chat functionality works without errors
+
+
+## Add Back Button to Chat Screen
+
+- [x] Add back button to ChatRoom header
+- [x] Navigate to /chats on back button click
+- [x] Style back button to match design

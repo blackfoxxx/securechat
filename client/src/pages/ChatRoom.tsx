@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History, Lock as LockIcon } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History, Lock as LockIcon, ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -344,7 +344,15 @@ export default function ChatRoom() {
   return (
     <div className="h-screen flex flex-col bg-background">
       <div className="border-b p-4 flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation('/chats')}
+            className="hover:bg-accent"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <h2 className="text-xl font-semibold">
             {currentConversation && 'otherUser' in currentConversation && currentConversation.otherUser
               ? currentConversation.otherUser.name || 'Unknown'
