@@ -1,0 +1,73 @@
+# Dependabot Configuration for Secure Chat Web
+# Automatically checks for dependency updates and security vulnerabilities
+
+version: 2
+updates:
+  # Enable version updates for npm (package.json)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    # Automatically open pull requests for security updates
+    open-pull-requests-limit: 10
+    # Assign reviewers (replace with your GitHub username)
+    reviewers:
+      - "blackfoxxx"
+    # Add labels to PRs
+    labels:
+      - "dependencies"
+      - "security"
+    # Commit message prefix
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(dev-deps)"
+      include: "scope"
+    # Group updates by type
+    groups:
+      # Group all production dependencies together
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group all development dependencies together
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    # Allow specific dependencies to be updated
+    allow:
+      - dependency-type: "all"
+    # Ignore specific dependencies (if needed)
+    # ignore:
+    #   - dependency-name: "package-name"
+    #     versions: ["1.x", "2.x"]
+    
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
+
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"
