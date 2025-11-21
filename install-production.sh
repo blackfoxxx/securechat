@@ -290,7 +290,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx-rate-limit.conf:/etc/nginx/nginx.conf:ro
       - certbot_data:/var/www/certbot:ro
       - certbot_conf:/etc/letsencrypt:ro
     depends_on:

@@ -696,3 +696,19 @@
 - [ ] Create uninstall script
 - [x] Write comprehensive deployment documentation
 - [ ] Test installation on fresh Ubuntu server
+
+
+## Nginx Rate Limiting Configuration
+
+- [x] Create rate limiting zones for different endpoints
+- [x] Add general API rate limiting (60 req/min per IP)
+- [x] Add authentication rate limiting (5 req/min per IP)
+- [x] Add file upload rate limiting (10 req/min per IP)
+- [x] Add WebSocket connection rate limiting
+- [x] Configure burst allowances for legitimate traffic spikes
+- [x] Add rate limit error pages with retry-after headers
+- [x] Whitelist trusted IPs from rate limiting
+- [x] Add rate limiting monitoring and logging
+- [x] Update installation script with rate limiting config
+- [x] Document rate limiting rules and customization
+- [x] Test rate limiting with load testing tools
