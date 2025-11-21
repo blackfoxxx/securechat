@@ -1,0 +1,169 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                     SECURE CHAT WEB - REPOSITORY INFORMATION                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Repository Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  GitHub Username: blackfoxxx
+  Repository Name: securechat
+  Repository URL:  https://github.com/blackfoxxx/securechat
+  Visibility:      Public
+  License:         MIT License
+
+Project Statistics:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Total Size:      ~4 MB (Git repository)
+  Languages:       TypeScript, JavaScript, CSS, HTML
+  Framework:       React 19 + Node.js 22
+  Database:        MySQL
+  Real-time:       Socket.IO
+  Deployment:      Docker + Nginx
+
+Key Features:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅ End-to-End Encryption (RSA-OAEP + AES-GCM)
+  ✅ Real-time Messaging with Socket.IO
+  ✅ Voice & Video Calls (Jitsi Meet)
+  ✅ Group Chats with Member Management
+  ✅ File Sharing (Images, Videos, Documents)
+  ✅ Voice Messages with Waveform Visualization
+  ✅ Location Sharing (Static & Live Tracking)
+  ✅ Message Reactions & Read Receipts
+  ✅ Typing Indicators
+  ✅ User Search & Discovery
+  ✅ Online Status Tracking
+  ✅ Admin Dashboard
+  ✅ Rate Limiting & Security
+  ✅ One-Click Production Deployment
+
+Directory Structure:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  client/                  Frontend React application
+    ├── public/           Static assets
+    └── src/
+        ├── components/   UI components (ChatRoom, ChatList, etc.)
+        ├── contexts/     React contexts (Socket, E2EE, etc.)
+        ├── hooks/        Custom hooks
+        ├── lib/          Utilities and helpers
+        └── pages/        Page components
+
+  server/                  Backend Node.js application
+    ├── _core/            Core server functionality
+    ├── routers/          tRPC API routers
+    ├── db.ts             Database queries
+    └── presence.ts       Socket.IO handlers
+
+  drizzle/                 Database schema and migrations
+    └── schema.ts         Table definitions
+
+  nginx/                   Nginx configuration
+    └── nginx-rate-limit.conf
+
+  scripts/                 Utility scripts
+  install-production.sh    One-click deployment script
+  docker-compose.prod.yml  Docker configuration
+
+Documentation Files:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  📄 README.md                    Main project documentation
+  📄 PRODUCTION_DEPLOYMENT.md     Production deployment guide
+  📄 RATE_LIMITING.md             Rate limiting configuration
+  📄 GITHUB_UPLOAD.md             Detailed GitHub upload instructions
+  📄 QUICK_START_GITHUB.md        Quick start guide for upload
+  📄 LICENSE                      MIT License
+  📄 todo.md                      Feature tracking
+
+Upload Instructions:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. Get GitHub Personal Access Token:
+     https://github.com/settings/tokens/new
+     (Select scope: repo)
+
+  2. Run the upload script:
+     cd /home/ubuntu/secure-chat-web
+     ./github-upload.sh
+
+  3. Enter your token when prompted
+
+  4. Visit your repository:
+     https://github.com/blackfoxxx/securechat
+
+Technology Stack:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Frontend:
+    • React 19
+    • TypeScript
+    • Vite
+    • Tailwind CSS 4
+    • shadcn/ui
+    • tRPC
+    • Socket.IO Client
+    • Wouter (routing)
+
+  Backend:
+    • Node.js 22
+    • Express 4
+    • tRPC 11
+    • Socket.IO
+    • Drizzle ORM
+    • MySQL
+    • JWT
+    • bcrypt
+
+  Infrastructure:
+    • Docker & Docker Compose
+    • Nginx (reverse proxy)
+    • Let's Encrypt (SSL)
+    • Jitsi Meet (video calls)
+
+Security Features:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🔒 End-to-End Encryption (E2EE)
+  🔒 Password-Protected Keys
+  🔒 Recovery Codes System
+  🔒 Key Fingerprint Verification
+  🔒 Rate Limiting (6 zones)
+  🔒 JWT Authentication
+  🔒 bcrypt Password Hashing
+  🔒 HTTPS/TLS Encryption
+  🔒 SQL Injection Prevention
+  🔒 XSS Protection
+
+Deployment Options:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. Manus Platform (Recommended)
+     - One-click deployment
+     - Automatic SSL
+     - Built-in monitoring
+
+  2. Self-Hosted (VPS/Cloud)
+     - Use install-production.sh
+     - Full control
+     - Custom domain support
+
+  3. Docker Deployment
+     - docker-compose.prod.yml
+     - Containerized services
+     - Easy scaling
+
+Next Steps After Upload:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✓ Verify repository contents
+  ✓ Add repository topics/tags
+  ✓ Update README with your info
+  ✓ Configure repository settings
+  ✓ Enable GitHub Issues
+  ✓ Set up GitHub Actions (optional)
+  ✓ Add collaborators (if needed)
+  ✓ Create first release/tag
+  ✓ Share with community
+
+Support:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Issues:  https://github.com/blackfoxxx/securechat/issues
+  Docs:    See README.md and documentation files
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                          Ready to Upload! 🚀                                 ║
+║                    Run: ./github-upload.sh                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
