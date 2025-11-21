@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History, Lock as LockIcon, ArrowLeft } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History, Lock as LockIcon, ArrowLeft, MapPin, Phone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import { DecryptedMessage } from "@/components/DecryptedMessage";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { ReadReceipts } from "@/components/ReadReceipts";
+import { LocationMessage } from "@/components/LocationMessage";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,7 @@ export default function ChatRoom() {
   const [callHistoryDialogOpen, setCallHistoryDialogOpen] = useState(false);
   const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
   const [e2eeEnabled, setE2eeEnabled] = useState(false);
+  const [isSendingLocation, setIsSendingLocation] = useState(false);
   const [otherUser, setOtherUser] = useState<{ id: number; name: string; avatar?: string; publicKey?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -331,6 +333,59 @@ export default function ChatRoom() {
     }
   };
 
+  const handleSendLocation = async () => {
+    if (!user) return;
+
+    setIsSendingLocation(true);
+    
+    try {
+      // Get user's current location
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+
+      // Try to get address using reverse geocoding (optional)
+      let address = '';
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+        );
+        const data = await response.json();
+        address = data.display_name || '';
+      } catch (error) {
+        console.log('Could not fetch address:', error);
+      }
+
+      // Send location as a message
+      sendMessageMutation.mutate({
+        conversationId,
+        content: `📍 Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}${address ? `\n${address}` : ''}`,
+        fileType: 'location',
+        fileUrl: JSON.stringify({ latitude, longitude, address }),
+      });
+
+      toast.success('Location shared');
+    } catch (error: any) {
+      if (error.code === 1) {
+        toast.error('Location permission denied');
+      } else if (error.code === 2) {
+        toast.error('Location unavailable');
+      } else if (error.code === 3) {
+        toast.error('Location request timed out');
+      } else {
+        toast.error('Failed to get location');
+      }
+    } finally {
+      setIsSendingLocation(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -362,6 +417,95 @@ export default function ChatRoom() {
         <div className="flex items-center gap-2">
           {otherUser && (
             <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (!socket || !connected) {
+                    toast.error("Not connected to server");
+                    return;
+                  }
+                  if (!currentConversation) {
+                    toast.error("Conversation not found");
+                    return;
+                  }
+
+                  const roomName = `chat-${conversationId}-${Date.now()}`;
+                  
+                  const isGroupCall = currentConversation.conversation.type === 'group';
+                  let recipientIds: number[] = [];
+                  
+                  if (isGroupCall) {
+                    if ('members' in currentConversation && Array.isArray(currentConversation.members)) {
+                      recipientIds = currentConversation.members
+                        .filter((m: any) => m.id !== user?.id)
+                        .map((m: any) => m.id);
+                    }
+                  } else {
+                    if (!otherUser) {
+                      toast.error("Recipient not found");
+                      return;
+                    }
+                    recipientIds = [otherUser.id];
+                  }
+                  
+                  if (recipientIds.length === 0) {
+                    toast.error("No recipients found");
+                    return;
+                  }
+                  
+                  socket.emit("call:initiate", {
+                    callerId: user?.id,
+                    callerName: user?.name || user?.username || "User",
+                    callerAvatar: user?.avatar,
+                    recipientIds,
+                    conversationId,
+                    roomName,
+                    callType: "audio",
+                    isGroupCall,
+                  });
+
+                  if (isGroupCall) {
+                    toast.info(`Starting group voice call with ${recipientIds.length} participant(s)...`);
+                  } else {
+                    toast.info(`Calling ${otherUser?.name}...`);
+                  }
+
+                  if (isGroupCall) {
+                    const displayName = user?.name || user?.username || 'User';
+                    setLocation(`/call/${conversationId}?room=${roomName}&name=${displayName}&isGroup=true&audioOnly=true`);
+                  } else {
+                    socket.once("call:accepted", ({ roomName: acceptedRoomName }) => {
+                      toast.success("Call accepted!");
+                      const displayName = user?.name || user?.username || 'User';
+                      setLocation(`/call/${conversationId}?room=${acceptedRoomName}&name=${displayName}&audioOnly=true`);
+                    });
+
+                    socket.once("call:declined", ({ recipientName }) => {
+                      toast.error(`${recipientName} declined the call`);
+                    });
+
+                    socket.once("call:recipient-offline", () => {
+                      toast.error(`${otherUser?.name} is offline`);
+                    });
+
+                    setTimeout(() => {
+                      socket.emit("call:cancel", {
+                        callerId: user?.id,
+                        recipientId: otherUser?.id,
+                      });
+                    }, 30000);
+                  }
+                  
+                  socket.once("call:some-recipients-offline", ({ offlineRecipients }) => {
+                    toast.warning(`${offlineRecipients.length} participant(s) are offline`);
+                  });
+                }}
+                className="text-sm"
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Voice Call
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -551,6 +695,18 @@ export default function ChatRoom() {
                   />
                 )}
                 
+                {/* Video message */}
+                {msg.fileUrl && msg.fileType?.startsWith('video/') && (
+                  <div className="mb-2">
+                    <video
+                      src={msg.fileUrl}
+                      controls
+                      className="rounded-lg max-w-full"
+                      style={{ maxHeight: '300px' }}
+                    />
+                  </div>
+                )}
+                
                 {/* Voice message */}
                 {msg.fileUrl && msg.fileType?.startsWith('audio/') && (
                   <div className="mb-2">
@@ -558,8 +714,26 @@ export default function ChatRoom() {
                   </div>
                 )}
                 
+                {/* Location message */}
+                {msg.fileType === 'location' && msg.fileUrl && (() => {
+                  try {
+                    const locationData = JSON.parse(msg.fileUrl);
+                    return (
+                      <div className="mb-2">
+                        <LocationMessage
+                          latitude={locationData.latitude}
+                          longitude={locationData.longitude}
+                          address={locationData.address}
+                        />
+                      </div>
+                    );
+                  } catch (e) {
+                    return null;
+                  }
+                })()}
+                
                 {/* File attachment */}
-                {msg.fileUrl && !msg.fileType?.startsWith('image/') && !msg.fileType?.startsWith('audio/') && (
+                {msg.fileUrl && !msg.fileType?.startsWith('image/') && !msg.fileType?.startsWith('audio/') && !msg.fileType?.startsWith('video/') && msg.fileType !== 'location' && (
                   <a 
                     href={msg.fileUrl} 
                     target="_blank" 
@@ -673,6 +847,7 @@ export default function ChatRoom() {
             <input
               ref={fileInputRef}
               type="file"
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -685,6 +860,15 @@ export default function ChatRoom() {
               onClick={() => fileInputRef.current?.click()}
             >
               <Paperclip className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleSendLocation}
+              disabled={isSendingLocation}
+              title="Share location"
+            >
+              <MapPin className="h-4 w-4" />
             </Button>
             <Input
               value={message}

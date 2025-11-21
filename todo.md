@@ -586,3 +586,30 @@
 - [x] Add back button to ChatRoom header
 - [x] Navigate to /chats on back button click
 - [x] Style back button to match design
+
+
+## Send Location Feature
+
+- [x] Add location button to message input area
+- [x] Implement geolocation API to get current location
+- [x] Store location messages with lat/lng coordinates
+- [x] Display location messages with map preview
+- [x] Add "Open in Maps" link for location messages
+- [x] Handle location permission errors gracefully
+
+## Send Video Feature
+
+- [x] Add video file upload support to file picker
+- [x] Store video files in S3 storage
+- [x] Add video player component for message display
+- [ ] Show video thumbnail in message bubble
+- [ ] Add video duration and size display
+- [x] Support common video formats (mp4, webm, mov)
+
+## Voice Call Feature
+
+- [x] Add audio-only call button separate from video call
+- [x] Update call initiation to support audio-only mode
+- [x] Modify VideoCall page to handle audio-only calls
+- [ ] Add UI toggle to switch between audio and video during call
+- [x] Update call notifications to show call type (audio/video)
