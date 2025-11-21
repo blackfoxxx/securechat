@@ -139,3 +139,6 @@ nginx/logs/
 
 # Screenshots
 screenshots/
+
+# Manus Platform Cache (contains sensitive query data)
+.manus/
