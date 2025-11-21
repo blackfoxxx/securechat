@@ -105,3 +105,37 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
+mysql_data/
+*.sql.gz
+
+# Uploads and Media
+uploads/*
+!uploads/.gitkeep
+storage/*
+!storage/.gitkeep
+
+# SSL Certificates
+certbot_conf/
+certbot_data/
+*.pem
+*.key
+*.crt
+*.csr
+
+# Docker
+docker-compose.override.yml
+
+# Backups
+backups/
+*.backup
+
+# Production Secrets
+secrets/
+*.secret
+*.env.backup
+
+# Nginx
+nginx/logs/
+
+# Screenshots
+screenshots/
