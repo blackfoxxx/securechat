@@ -294,6 +294,110 @@ export const appRouter = router({
         });
       }),
 
+    addGroupMembers: protectedProcedure
+      .input(z.object({
+        conversationId: z.number(),
+        userIds: z.array(z.number()),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const { conversationMembers, conversations } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        // Verify user is a member of the group
+        const membership = await db
+          .select()
+          .from(conversationMembers)
+          .where(
+            and(
+              eq(conversationMembers.conversationId, input.conversationId),
+              eq(conversationMembers.userId, ctx.user.id)
+            )
+          )
+          .limit(1);
+
+        if (membership.length === 0) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You are not a member of this group" });
+        }
+
+        // Add new members
+        const values = input.userIds.map((userId) => ({
+          conversationId: input.conversationId,
+          userId,
+        }));
+
+        await db.insert(conversationMembers).values(values);
+
+        return { success: true };
+      }),
+
+    removeGroupMember: protectedProcedure
+      .input(z.object({
+        conversationId: z.number(),
+        userId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const { conversationMembers } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        // Verify user is a member of the group
+        const membership = await db
+          .select()
+          .from(conversationMembers)
+          .where(
+            and(
+              eq(conversationMembers.conversationId, input.conversationId),
+              eq(conversationMembers.userId, ctx.user.id)
+            )
+          )
+          .limit(1);
+
+        if (membership.length === 0) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You are not a member of this group" });
+        }
+
+        // Remove the member
+        await db
+          .delete(conversationMembers)
+          .where(
+            and(
+              eq(conversationMembers.conversationId, input.conversationId),
+              eq(conversationMembers.userId, input.userId)
+            )
+          );
+
+        return { success: true };
+      }),
+
+    leaveGroup: protectedProcedure
+      .input(z.object({
+        conversationId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("./db");
+        const { conversationMembers } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        // Remove current user from the group
+        await db
+          .delete(conversationMembers)
+          .where(
+            and(
+              eq(conversationMembers.conversationId, input.conversationId),
+              eq(conversationMembers.userId, ctx.user.id)
+            )
+          );
+
+        return { success: true };
+      }),
+
     uploadFile: protectedProcedure
       .input((val: unknown) => {
         if (typeof val === "object" && val !== null && "fileName" in val && "fileType" in val && "fileData" in val) {

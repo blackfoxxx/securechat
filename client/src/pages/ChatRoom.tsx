@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History, Lock as LockIcon, ArrowLeft, MapPin, Phone, Navigation } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History, Lock as LockIcon, ArrowLeft, MapPin, Phone, Navigation, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -14,10 +14,11 @@ import { MessageReactions } from "@/components/MessageReactions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { ForwardMessageDialog } from "@/components/ForwardMessageDialog";
 import { MessageReply } from "@/components/MessageReply";
-import { useE2EE } from "@/contexts/E2EEContext";
 import KeyVerificationDialog from "@/components/KeyVerificationDialog";
+import { useE2EE } from "@/contexts/E2EEContext";
 import { CallHistory } from "@/components/CallHistory";
 import { E2EEUnlockDialog } from "@/components/E2EEUnlockDialog";
+import { GroupSettingsDialog } from "@/components/GroupSettingsDialog";
 import { DecryptedMessage } from "@/components/DecryptedMessage";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
@@ -56,6 +57,7 @@ export default function ChatRoom() {
   const [replyTo, setReplyTo] = useState<{ id: number; content: string; senderName: string } | null>(null);
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [callHistoryDialogOpen, setCallHistoryDialogOpen] = useState(false);
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
   const [e2eeEnabled, setE2eeEnabled] = useState(false);
   const [isSendingLocation, setIsSendingLocation] = useState(false);
@@ -744,6 +746,17 @@ export default function ChatRoom() {
                 <Shield className="h-4 w-4 mr-2" />
                 Verify
               </Button>
+              {currentConversation?.conversation.type === 'group' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setGroupSettingsOpen(true)}
+                  className="text-sm"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Group Settings
+                </Button>
+              )}
               {isE2EEEnabled && otherUser?.publicKey && (
                 <Button
                   variant={e2eeEnabled ? "default" : "outline"}
@@ -1106,6 +1119,23 @@ export default function ChatRoom() {
           toast.success("E2EE unlocked and enabled");
         }}
       />
+
+      {/* Group Settings Dialog */}
+      {currentConversation?.conversation.type === 'group' && 'members' in currentConversation && (
+        <GroupSettingsDialog
+          open={groupSettingsOpen}
+          onOpenChange={setGroupSettingsOpen}
+          conversationId={conversationId}
+          groupName={currentConversation.conversation.name || 'Group Chat'}
+          members={(currentConversation.members as any[]).map((m: any) => ({
+            id: m.id,
+            name: m.name || '',
+            username: m.username || '',
+            avatar: m.avatar,
+          }))}
+          currentUserId={user?.id || 0}
+        />
+      )}
     </div>
   );
 }

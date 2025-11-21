@@ -636,3 +636,42 @@
 - [x] Locate duplicate key usage in ChatList component
 - [x] Replace duplicate keys with unique identifiers
 - [x] Test ChatList rendering without errors
+
+
+## Group Chat Creation and Management
+
+- [ ] Create CreateGroupDialog component with multi-step wizard
+- [ ] Add group name and description input fields
+- [ ] Implement member selection with search and checkboxes
+- [ ] Add group avatar upload functionality
+- [ ] Create GroupSettingsDialog for managing existing groups
+- [ ] Implement add member functionality in group settings
+- [ ] Implement remove member functionality with confirmation
+- [ ] Add leave group option for non-admin members
+- [ ] Implement admin role assignment and transfer
+- [ ] Add group info display (member count, creation date)
+- [ ] Create backend endpoint for group creation
+- [ ] Create backend endpoint for adding members
+- [ ] Create backend endpoint for removing members
+- [ ] Create backend endpoint for updating group settings
+- [ ] Add "New Group" button in ChatList
+- [ ] Display group icon/indicator in conversation list
+- [ ] Show member list in group chat header
+
+
+## Group Chat Creation and Management (Completed)
+
+- [x] Enhanced CreateGroupDialog component with multi-step UI
+- [x] Add group name input and validation
+- [x] Add member selection with user search
+- [x] Create backend endpoint for group creation
+- [x] Create GroupSettingsDialog component
+- [x] Add view group info (name, members, avatar)
+- [x] Implement add members functionality
+- [x] Implement remove members functionality  
+- [x] Add leave group functionality
+- [x] Create backend endpoints for member management (addMember, removeMember, leaveGroup)
+- [x] Add group settings button in ChatRoom header
+- [x] Integrate CreateGroupDialog into ChatList (already existed)
+- [x] Show group member count in chat list
+- [x] Display group name in chat room header
