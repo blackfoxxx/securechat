@@ -137,8 +137,8 @@ export default function ChatList() {
                   conv.lastMessage?.content?.toLowerCase().includes(query)
                 );
               })
-              .map((conv) => (
-              <Link key={conv.conversation.id} href={`/chat/${conv.conversation.id}`}>
+              .map((conv, index) => (
+              <Link key={`conv-${conv.conversation.id}-${index}`} href={`/chat/${conv.conversation.id}`}>
                 <Card className="p-4 hover:bg-accent cursor-pointer transition-colors">
                   <div className="flex items-center gap-4">
                     {/* Avatar with online indicator */}

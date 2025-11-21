@@ -629,3 +629,10 @@
 - [x] Show "User is sharing live location" indicator
 - [x] Add map with moving marker for recipient view
 - [x] Handle location permission and errors gracefully
+
+
+## Fix Duplicate React Key Error
+
+- [x] Locate duplicate key usage in ChatList component
+- [x] Replace duplicate keys with unique identifiers
+- [x] Test ChatList rendering without errors
