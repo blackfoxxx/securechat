@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/contexts/SocketContext";
 import { trpc } from "@/lib/trpc";
-import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History, Lock as LockIcon, ArrowLeft, MapPin, Phone } from "lucide-react";
+import { Send, Paperclip, X, Image as ImageIcon, File, Mic, Check, CheckCheck, Shield, Video, History, Lock as LockIcon, ArrowLeft, MapPin, Phone, Navigation } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import { TypingIndicator } from "@/components/TypingIndicator";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { ReadReceipts } from "@/components/ReadReceipts";
 import { LocationMessage } from "@/components/LocationMessage";
+import { LiveLocationMessage } from "@/components/LiveLocationMessage";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +59,9 @@ export default function ChatRoom() {
   const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
   const [e2eeEnabled, setE2eeEnabled] = useState(false);
   const [isSendingLocation, setIsSendingLocation] = useState(false);
+  const [isLiveLocationActive, setIsLiveLocationActive] = useState(false);
+  const [liveLocationMessageId, setLiveLocationMessageId] = useState<number | null>(null);
+  const liveLocationWatchId = useRef<number | null>(null);
   const [otherUser, setOtherUser] = useState<{ id: number; name: string; avatar?: string; publicKey?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -385,6 +389,124 @@ export default function ChatRoom() {
       setIsSendingLocation(false);
     }
   };
+
+  const handleStartLiveLocation = async () => {
+    if (!user || !socket) return;
+
+    try {
+      // Get initial location
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+
+      // Create a live location message
+      // Create a live location message
+      sendMessageMutation.mutate({
+        conversationId,
+        content: `📍 Sharing live location...`,
+        fileType: 'live-location',
+        fileUrl: JSON.stringify({ 
+          latitude, 
+          longitude, 
+          isActive: true,
+          startedAt: new Date().toISOString()
+        }),
+      });
+
+      // Wait a moment for the message to be created and refetch
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await refetch();
+      
+      // Get the latest message ID from the messages list
+      const messageId = messages?.[messages.length - 1]?.id || Date.now();
+      setLiveLocationMessageId(messageId);
+      setIsLiveLocationActive(true);
+
+      // Emit start event
+      socket.emit("location:start", {
+        messageId,
+        conversationId,
+        senderId: user.id,
+        latitude,
+        longitude,
+      });
+
+      // Start watching position
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          socket.emit("location:update", {
+            messageId,
+            conversationId,
+            senderId: user.id,
+            latitude: lat,
+            longitude: lng,
+          });
+        },
+        (error) => {
+          console.error("Location watch error:", error);
+          handleStopLiveLocation();
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 5000,
+          timeout: 10000,
+        }
+      );
+
+      liveLocationWatchId.current = watchId;
+      toast.success('Live location sharing started');
+
+      // Auto-stop after 1 hour
+      setTimeout(() => {
+        if (isLiveLocationActive) {
+          handleStopLiveLocation();
+        }
+      }, 3600000);
+    } catch (error: any) {
+      if (error.code === 1) {
+        toast.error('Location permission denied');
+      } else {
+        toast.error('Failed to start live location');
+      }
+    }
+  };
+
+  const handleStopLiveLocation = () => {
+    if (!socket || !liveLocationMessageId) return;
+
+    // Stop watching position
+    if (liveLocationWatchId.current !== null) {
+      navigator.geolocation.clearWatch(liveLocationWatchId.current);
+      liveLocationWatchId.current = null;
+    }
+
+    // Emit stop event
+    socket.emit("location:stop", {
+      messageId: liveLocationMessageId,
+      conversationId,
+      senderId: user?.id,
+    });
+
+    setIsLiveLocationActive(false);
+    setLiveLocationMessageId(null);
+    toast.info('Live location sharing stopped');
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (liveLocationWatchId.current !== null) {
+        navigator.geolocation.clearWatch(liveLocationWatchId.current);
+      }
+    };
+  }, []);
 
   if (!isAuthenticated) {
     return (
@@ -714,6 +836,30 @@ export default function ChatRoom() {
                   </div>
                 )}
                 
+                {/* Live location message */}
+                {msg.fileType === 'live-location' && msg.fileUrl && (() => {
+                  try {
+                    const locationData = JSON.parse(msg.fileUrl);
+                    return (
+                      <div className="mb-2">
+                        <LiveLocationMessage
+                          messageId={msg.id}
+                          senderId={msg.senderId}
+                          senderName={msg.senderId === user?.id ? "You" : "User"}
+                          initialLatitude={locationData.latitude}
+                          initialLongitude={locationData.longitude}
+                          isActive={locationData.isActive && msg.id === liveLocationMessageId}
+                          startedAt={locationData.startedAt}
+                          onStop={msg.senderId === user?.id ? handleStopLiveLocation : undefined}
+                          canStop={msg.senderId === user?.id}
+                        />
+                      </div>
+                    );
+                  } catch (e) {
+                    return null;
+                  }
+                })()}
+                
                 {/* Location message */}
                 {msg.fileType === 'location' && msg.fileUrl && (() => {
                   try {
@@ -733,7 +879,7 @@ export default function ChatRoom() {
                 })()}
                 
                 {/* File attachment */}
-                {msg.fileUrl && !msg.fileType?.startsWith('image/') && !msg.fileType?.startsWith('audio/') && !msg.fileType?.startsWith('video/') && msg.fileType !== 'location' && (
+                {msg.fileUrl && !msg.fileType?.startsWith('image/') && !msg.fileType?.startsWith('audio/') && !msg.fileType?.startsWith('video/') && msg.fileType !== 'location' && msg.fileType !== 'live-location' && (
                   <a 
                     href={msg.fileUrl} 
                     target="_blank" 
@@ -865,11 +1011,30 @@ export default function ChatRoom() {
               variant="outline"
               size="icon"
               onClick={handleSendLocation}
-              disabled={isSendingLocation}
+              disabled={isSendingLocation || isLiveLocationActive}
               title="Share location"
             >
               <MapPin className="h-4 w-4" />
             </Button>
+            {!isLiveLocationActive ? (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleStartLiveLocation}
+                title="Start live location sharing"
+              >
+                <Navigation className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={handleStopLiveLocation}
+                title="Stop live location sharing"
+              >
+                <Navigation className="h-4 w-4 animate-pulse" />
+              </Button>
+            )}
             <Input
               value={message}
               onChange={(e) => {

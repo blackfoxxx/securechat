@@ -613,3 +613,19 @@
 - [x] Modify VideoCall page to handle audio-only calls
 - [ ] Add UI toggle to switch between audio and video during call
 - [x] Update call notifications to show call type (audio/video)
+
+
+## Live Location Sharing
+
+- [x] Create LiveLocationMessage component with embedded map
+- [x] Add Socket.IO events for location updates (location:start, location:update, location:stop)
+- [x] Implement geolocation watchPosition for continuous tracking
+- [x] Add start/stop controls for live location sharing
+- [x] Display real-time location updates on recipient's map
+- [x] Show tracking duration and last update time
+- [x] Add battery-efficient location tracking options
+- [x] Store live location sessions in database
+- [x] Auto-stop tracking after timeout or battery low
+- [x] Show "User is sharing live location" indicator
+- [x] Add map with moving marker for recipient view
+- [x] Handle location permission and errors gracefully

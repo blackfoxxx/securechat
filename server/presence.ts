@@ -201,6 +201,41 @@ export function setupPresence(httpServer: HTTPServer) {
         }
       }
     });
+
+    // Handle live location sharing
+    socket.on("location:start", ({ messageId, conversationId, senderId, latitude, longitude }: {
+      messageId: number;
+      conversationId: number;
+      senderId: number;
+      latitude: number;
+      longitude: number;
+    }) => {
+      console.log(`User ${senderId} started sharing live location in conversation ${conversationId}`);
+      // Broadcast to all users in the conversation
+      io.emit("location:started", { messageId, conversationId, senderId, latitude, longitude, timestamp: new Date().toISOString() });
+    });
+
+    socket.on("location:update", ({ messageId, conversationId, senderId, latitude, longitude }: {
+      messageId: number;
+      conversationId: number;
+      senderId: number;
+      latitude: number;
+      longitude: number;
+    }) => {
+      console.log(`User ${senderId} updated live location: ${latitude}, ${longitude}`);
+      // Broadcast location update to all users in the conversation
+      io.emit("location:update", { messageId, conversationId, senderId, latitude, longitude, timestamp: new Date().toISOString() });
+    });
+
+    socket.on("location:stop", ({ messageId, conversationId, senderId }: {
+      messageId: number;
+      conversationId: number;
+      senderId: number;
+    }) => {
+      console.log(`User ${senderId} stopped sharing live location`);
+      // Broadcast to all users in the conversation
+      io.emit("location:stopped", { messageId, conversationId, senderId, timestamp: new Date().toISOString() });
+    });
   });
 
   return io;
