@@ -675,3 +675,24 @@
 - [x] Integrate CreateGroupDialog into ChatList (already existed)
 - [x] Show group member count in chat list
 - [x] Display group name in chat room header
+
+
+## One-Click Installation Script
+
+- [x] Create main installation script (install-production.sh)
+- [x] Add system requirements check (Node.js, Docker, etc.)
+- [x] Add automatic dependency installation
+- [x] Create Docker Compose configuration for production
+- [x] Add MySQL/database container setup
+- [ ] Add Jitsi Meet container for video calls
+- [x] Add Nginx reverse proxy configuration
+- [x] Create SSL certificate setup with Let's Encrypt
+- [x] Add environment configuration wizard
+- [x] Generate secure random secrets automatically
+- [x] Create database initialization script
+- [x] Add service management scripts (start, stop, restart)
+- [x] Create backup and restore scripts
+- [x] Add health check and monitoring setup
+- [ ] Create uninstall script
+- [x] Write comprehensive deployment documentation
+- [ ] Test installation on fresh Ubuntu server
